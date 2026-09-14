@@ -25,6 +25,7 @@
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     display:flex;flex-direction:column;align-items:center;
     padding:18px 12px 30px;
+    position:relative;
   }
   h1{
     margin:4px 0 14px;
@@ -33,8 +34,17 @@
     text-shadow:0 0 8px rgba(40,240,255,.6);
   }
   .wrap{
-    width:100%;max-width:1040px;
+    width:100%;max-width:1100px;
   }
+  .corner-icon{
+    position:fixed; top:14px; width:38px;height:38px;border-radius:50%;
+    background:linear-gradient(180deg,var(--bg-panel),#0f0726);
+    border:1px solid var(--panel-border); display:flex;align-items:center;justify-content:center;
+    font-size:17px; cursor:pointer; z-index:5; box-shadow:0 0 10px rgba(0,0,0,.4);
+  }
+  .corner-icon:hover{ filter:brightness(1.2); }
+  #chatIcon{ left:14px; }
+  #settingsIcon{ right:14px; }
   .hud{
     display:flex;justify-content:space-between;align-items:center;
     background:linear-gradient(180deg,var(--bg-panel),#0f0726);
@@ -46,21 +56,50 @@
     gap:12px;flex-wrap:wrap;
   }
   .player{
-    display:flex;align-items:center;gap:10px;min-width:220px;
+    display:flex;align-items:center;gap:10px;min-width:190px;
   }
+  .avatar-wrap{ position:relative; width:46px; height:46px; flex-shrink:0; }
+  .avatar{
+    width:46px;height:46px;border-radius:50%;
+    background:linear-gradient(160deg,#2a1a55,#160b33);
+    border:3px solid var(--p-ring, var(--neon-magenta));
+    display:flex;align-items:center;justify-content:center;font-size:22px;
+    box-shadow:0 0 10px rgba(0,0,0,.4);
+  }
+  #p1box .avatar{ --p-ring: var(--neon-magenta); }
+  #p2box .avatar{ --p-ring: var(--neon-cyan); }
+  .flag-badge{
+    position:absolute; bottom:-2px; right:-2px;
+    width:18px;height:18px;border-radius:50%;
+    background:var(--bg-panel); border:1px solid var(--panel-border);
+    display:flex;align-items:center;justify-content:center;font-size:10px;
+  }
+  #p2box{ flex-direction:row-reverse; }
+  .player-info{ display:flex; flex-direction:column; gap:1px; }
+  #p2box .player-info{ align-items:flex-end; }
   .player .name{font-weight:600;font-size:14px;}
   .player .group{font-size:11px;opacity:.75;}
   .player .coins{font-size:11.5px;color:var(--gold);font-weight:600;}
+  .score-center{ display:flex; flex-direction:column; align-items:center; gap:4px; }
+  .score-row{ display:flex; align-items:center; gap:0; background:rgba(0,0,0,.25); border-radius:20px; overflow:hidden; border:1px solid var(--panel-border); }
+  .score-num{
+    font-size:16px; font-weight:800; color:#fff; min-width:34px; text-align:center;
+    padding:6px 12px;
+  }
+  #p1score{ background:linear-gradient(180deg,#2c6fe0,#1a4a9e); }
+  #p2score{ background:linear-gradient(180deg,#e0362c,#a31e17); }
   .pot-badge{
     display:flex;align-items:center;gap:6px;justify-content:center;
-    font-size:13px;font-weight:700;color:var(--gold);
-    margin-bottom:2px;
+    font-size:13px;font-weight:700;color:#fff;
+    background:linear-gradient(180deg,#3a2a7a,#1f1450);
+    padding:6px 14px;
   }
   .pot-badge .dice{font-size:15px;}
   .balls-left{display:flex;gap:4px;flex-wrap:wrap;max-width:170px;}
+  #p2box .balls-left{ justify-content:flex-end; }
   .mini-ball{width:16px;height:16px;border-radius:50%;border:1px solid rgba(0,0,0,.4);}
   .center-status{
-    text-align:center;font-size:14px;font-weight:600;
+    text-align:center;font-size:13.5px;font-weight:600;
     color:var(--gold);
     min-width:180px;
   }
@@ -71,6 +110,35 @@
     box-shadow:0 0 10px rgba(255,47,208,.6);
   }
   #restartBtn:hover{filter:brightness(1.15);}
+  .table-row{
+    display:flex; gap:14px; align-items:flex-start; justify-content:center;
+    width:100%; flex-wrap:wrap;
+  }
+  .cue-rack{
+    display:flex; flex-direction:column; align-items:center; gap:8px;
+    background:linear-gradient(180deg,var(--bg-panel),#0f0726);
+    border:1px solid var(--panel-border); border-radius:14px;
+    padding:12px 10px; width:74px; flex-shrink:0;
+    box-shadow:0 0 18px rgba(0,0,0,.35);
+  }
+  .rack-title{ font-size:10.5px; letter-spacing:1px; opacity:.7; font-weight:700; }
+  .rack-cue-preview{
+    position:relative; width:22px; height:220px; border-radius:11px; overflow:hidden;
+    box-shadow:0 0 10px rgba(0,0,0,.5), inset 0 0 0 1px rgba(255,255,255,.08);
+  }
+  .rack-cue-preview{ transform:rotate(-18deg); }
+  .rack-cue-bar{ position:absolute; inset:0; }
+  .rack-cue-ring{ position:absolute; left:0; right:0; height:4px; }
+  .rack-spin{ font-size:11px; font-weight:800; color:#fff; opacity:.85; }
+  .rack-cue-name{ font-size:9.5px; text-align:center; opacity:.85; max-width:66px; line-height:1.25; }
+  .rack-thumbs{ display:flex; flex-direction:column; gap:6px; width:100%; margin-top:2px; }
+  .rack-thumb{
+    height:32px; border-radius:8px; cursor:pointer; border:2px solid transparent;
+    position:relative; overflow:hidden; transition:border-color .15s, transform .15s;
+    transform:rotate(-18deg);
+  }
+  .rack-thumb:hover{ transform:rotate(-18deg) translateY(-1px); }
+  .rack-thumb.selected{ border-color:var(--neon-cyan); box-shadow:0 0 8px rgba(40,240,255,.5); }
   .table-shell{
     position:relative;
     border-radius:26px;
@@ -85,6 +153,7 @@
     cursor:crosshair;
     width:100%;
     height:auto;
+    max-width:1000px;
   }
   .power-wrap{
     position:absolute;
@@ -133,7 +202,7 @@
   .cue-card.selected{ border-color:var(--neon-cyan); box-shadow:0 0 16px rgba(40,240,255,.5); }
   .cue-card .cueName{ font-weight:700; font-size:15px; }
   .cue-card .rarity{ font-size:11px; opacity:.7; margin-bottom:8px; }
-  .cue-stick-preview{ height:14px; border-radius:7px; margin:10px 0 14px; }
+  .cue-stick-preview{ height:14px; border-radius:7px; margin:10px 0 14px; position:relative; }
   .stat-row{ display:flex; align-items:center; gap:8px; font-size:11.5px; margin-bottom:5px; }
   .stat-row .label{ width:64px; opacity:.8; flex-shrink:0; }
   .stat-bar{ flex:1; height:8px; border-radius:4px; background:rgba(255,255,255,.1); overflow:hidden; }
@@ -146,14 +215,17 @@
     font-size:15px;font-weight:800;cursor:pointer;letter-spacing:1px;
     box-shadow:0 0 16px rgba(40,240,255,.6);
   }
-  #changeCueBtn{
-    background:linear-gradient(180deg,#3a2a7a,#241a52);
-    border:none;color:#fff;padding:7px 14px;border-radius:8px;
-    font-size:12px;font-weight:700;cursor:pointer;letter-spacing:.5px;
+  @media (max-width:640px){
+    .cue-rack{ width:56px; padding:8px 6px; }
+    .rack-cue-preview{ width:16px; height:150px; }
+    .rack-thumb{ height:26px; }
   }
 </style>
 </head>
 <body>
+  <div class="corner-icon" id="chatIcon" title="Chat">💬</div>
+  <div class="corner-icon" id="settingsIcon" title="Settings">⚙️</div>
+
   <h1>◆ POOL 2026 ◆</h1>
 
   <div class="overlay show" id="cueMenu">
@@ -168,33 +240,62 @@
   <div class="wrap" id="gameWrap" hidden>
     <div class="hud">
       <div class="player" id="p1box">
-        <div>
+        <div class="avatar-wrap">
+          <div class="avatar">🧑</div>
+          <div class="flag-badge">🔵</div>
+        </div>
+        <div class="player-info">
           <div class="name" id="p1name">Player 1</div>
           <div class="coins" id="p1coins">🪙 1500</div>
           <div class="group" id="p1group">Group: —</div>
+          <div class="balls-left" id="p1balls"></div>
         </div>
-        <div class="balls-left" id="p1balls"></div>
       </div>
-      <div>
-        <div class="pot-badge"><span class="dice">🎲</span><span id="potAmount">150</span></div>
+
+      <div class="score-center">
+        <div class="score-row">
+          <span class="score-num" id="p1score">0</span>
+          <div class="pot-badge"><span class="dice">🎲</span><span id="potAmount">150</span></div>
+          <span class="score-num" id="p2score">0</span>
+        </div>
         <div class="center-status" id="statusMsg">Player 1's turn — break!</div>
       </div>
-      <div class="player" id="p2box" style="justify-content:flex-end;">
-        <div class="balls-left" id="p2balls"></div>
-        <div>
-          <div class="name" id="p2name" style="text-align:right;">Player 2</div>
-          <div class="coins" id="p2coins" style="text-align:right;">🪙 1500</div>
-          <div class="group" id="p2group" style="text-align:right;">Group: —</div>
+
+      <div class="player" id="p2box">
+        <div class="avatar-wrap">
+          <div class="avatar">🧑</div>
+          <div class="flag-badge">🟢</div>
+        </div>
+        <div class="player-info">
+          <div class="name" id="p2name">Player 2</div>
+          <div class="coins" id="p2coins">🪙 1500</div>
+          <div class="group" id="p2group">Group: —</div>
+          <div class="balls-left" id="p2balls"></div>
         </div>
       </div>
-      <button id="changeCueBtn">🎱 CUE</button>
+
       <button id="restartBtn">RESTART</button>
     </div>
 
-    <div class="table-shell">
-      <canvas id="table" width="1000" height="520"></canvas>
-      <div class="power-wrap"><div id="powerFill"></div></div>
+    <div class="table-row">
+      <div class="cue-rack" id="cueRack">
+        <div class="rack-title">CUE</div>
+        <div class="rack-spin">0</div>
+        <div class="rack-cue-preview">
+          <div class="rack-cue-bar" id="rackCueBar"></div>
+          <div class="rack-cue-ring" id="rackRing1"></div>
+          <div class="rack-cue-ring" id="rackRing2"></div>
+        </div>
+        <div class="rack-cue-name" id="rackCueName">Emerald Gold</div>
+        <div class="rack-thumbs" id="rackThumbs"></div>
+      </div>
+
+      <div class="table-shell">
+        <canvas id="table" width="1000" height="520"></canvas>
+        <div class="power-wrap"><div id="powerFill"></div></div>
+      </div>
     </div>
+
     <div class="footer-msg" id="aimHint">Click &amp; drag away from the cue ball to aim, pull further back for more power, release to shoot.</div>
     <div class="footer-msg" id="equippedCueMsg" style="color:var(--gold);"></div>
     <div id="ballInHandBar" style="display:none;text-align:center;margin-top:8px;">
@@ -259,10 +360,8 @@
     const apexY = (PLAY.top+PLAY.bottom)/2;
     const dx = BALL_R*1.75;
     const dy = BALL_R*2.02;
-    const order = [1,9,2,10,8,3,11,4,12,5,13,6,14,7,15];
     // build triangle rows (1,2,3,4,5)
     let positions = [];
-    let idx=0;
     for(let row=0; row<5; row++){
       for(let col=0; col<=row; col++){
         const x = apexX + row*dx;
@@ -276,13 +375,13 @@
   function setupBalls(){
     balls = [];
     balls.push({id:'cue',x:PLAY.left+(PLAY.right-PLAY.left)*0.22,y:(PLAY.top+PLAY.bottom)/2,
-      vx:0,vy:0,r:BALL_R,color:'#f5f3ea',type:CUE,n:0,potted:false});
+      vx:0,vy:0,r:BALL_R,color:'#f5f3ea',type:CUE,n:0,potted:false,angle:0});
     const pos = rackPositions();
     const order = [1,9,2,10,8,3,11,4,12,5,13,6,14,7,15];
     order.forEach((n,i)=>{
       const def = ballDefs.find(b=>b.n===n);
       balls.push({id:'b'+n,x:pos[i].x,y:pos[i].y,vx:0,vy:0,r:BALL_R,
-        color:def.color,type:def.type,n:n,potted:false});
+        color:def.color,type:def.type,n:n,potted:false,angle:0});
     });
   }
 
@@ -294,6 +393,7 @@
     aiming:false,
     dragStart:null,
     dragCurrent:null,
+    hoverAngle:null, // direction the resting cue points toward before a drag starts
     inMotion:false,
     shotContacts:null, // set during a shot: {firstHitType, potted:[], cueScratched}
     firstBreak:true,
@@ -307,18 +407,25 @@
   const BASE_MAX_POWER = 14;
 
   // ---------- cue selection ----------
+  // Realistic cue art: dark wood/gold butt, lighter mid-wrap, pale leather tip,
+  // plus two gold/accent joint rings drawn near the tip — styled after
+  // classic billiards cues instead of flat neon bars.
   const cues = [
-    {id:'house', name:'House Cue', rarity:'Common · Lv 0', power:5, aim:7, spin:4,
-      stick:'linear-gradient(90deg,#3a2a1a,#7a5a2a 55%,#c8a86a)', buttColor:'#3a2a1a', midColor:'#7a5a2a', tipColor:'#e8d8c0'},
-    {id:'hofburg', name:'Hofburg Cue', rarity:'Common · Lv 0', power:7, aim:6, spin:6,
-      stick:'linear-gradient(90deg,#1a0a0a,#7a1010 15%,#c8102a 55%,#e8d8c8)', buttColor:'#1a0a0a', midColor:'#c8102a', tipColor:'#e8d8c8'},
+    {id:'oak', name:'Classic Oak', rarity:'Common · Lv 0', power:5, aim:7, spin:4,
+      buttColor:'#241206', midColor:'#7a4a1e', tipColor:'#f0e2c8', ringColor:'#d4af37'},
+    {id:'emerald', name:'Emerald Gold', rarity:'Rare · Lv 2', power:7, aim:8, spin:6,
+      buttColor:'#0a2418', midColor:'#1f6b3a', tipColor:'#f0ead6', ringColor:'#e9c46a'},
     {id:'vortex', name:'Neon Vortex Cue', rarity:'Epic · Lv 3', power:10, aim:8, spin:9,
-      stick:'linear-gradient(90deg,#0a0620,#8a2ce0 25%,#28f0ff 60%,#ff2fd0)', buttColor:'#0a0620', midColor:'#8a2ce0', tipColor:'#28f0ff'},
+      buttColor:'#0a0620', midColor:'#8a2ce0', tipColor:'#28f0ff', ringColor:'#28f0ff'},
   ];
-  let selectedCueId = 'hofburg';
+  let selectedCueId = 'emerald';
 
   function currentCue(){ return cues.find(c=>c.id===selectedCueId); }
   function maxPowerForCue(){ return BASE_MAX_POWER * (currentCue().power/7); }
+
+  function cueStickGradientCSS(c, angleDeg){
+    return `linear-gradient(${angleDeg}deg, ${c.tipColor} 0%, ${c.midColor} 22%, ${c.buttColor} 100%)`;
+  }
 
   function renderCueMenu(){
     const grid = document.getElementById('cueGrid');
@@ -329,14 +436,42 @@
       card.innerHTML = `
         <div class="cueName">${c.name}</div>
         <div class="rarity">${c.rarity}</div>
-        <div class="cue-stick-preview" style="background:${c.stick}"></div>
+        <div class="cue-stick-preview" style="background:${cueStickGradientCSS(c,90)}"></div>
         <div class="stat-row"><span class="label">Power</span><div class="stat-bar"><div class="fill" style="width:${c.power*10}%"></div></div><span class="val">${c.power}/10</span></div>
         <div class="stat-row"><span class="label">Aim</span><div class="stat-bar"><div class="fill" style="width:${c.aim*10}%"></div></div><span class="val">${c.aim}/10</span></div>
         <div class="stat-row"><span class="label">Spin</span><div class="stat-bar"><div class="fill" style="width:${c.spin*10}%"></div></div><span class="val">${c.spin}/10</span></div>
       `;
-      card.addEventListener('click', ()=>{ selectedCueId = c.id; renderCueMenu(); });
+      card.addEventListener('click', ()=>{ setSelectedCue(c.id); });
       grid.appendChild(card);
     });
+  }
+
+  function renderCueRack(){
+    const c = currentCue();
+    document.getElementById('rackCueBar').style.background = cueStickGradientCSS(c,180);
+    document.getElementById('rackRing1').style.top = '16%';
+    document.getElementById('rackRing1').style.background = c.ringColor;
+    document.getElementById('rackRing2').style.top = '27%';
+    document.getElementById('rackRing2').style.background = c.ringColor;
+    document.getElementById('rackCueName').textContent = c.name;
+
+    const thumbs = document.getElementById('rackThumbs');
+    thumbs.innerHTML = '';
+    cues.forEach(cue=>{
+      const t = document.createElement('div');
+      t.className = 'rack-thumb' + (cue.id===selectedCueId ? ' selected':'');
+      t.style.background = cueStickGradientCSS(cue,90);
+      t.title = cue.name;
+      t.addEventListener('click', ()=>{ if(!ballsMoving()) setSelectedCue(cue.id); });
+      thumbs.appendChild(t);
+    });
+  }
+
+  function setSelectedCue(id){
+    selectedCueId = id;
+    renderCueMenu();
+    renderCueRack();
+    updateEquippedCueMsg();
   }
 
   function ballsMoving(){
@@ -352,8 +487,12 @@
     // integrate
     balls.forEach(b=>{
       if(b.potted) return;
+      const dist = Math.hypot(b.vx, b.vy);
       b.x += b.vx;
       b.y += b.vy;
+      // roll: spin proportional to distance traveled this frame (arc length / radius),
+      // so the ball visibly tumbles along its path instead of sliding.
+      if(dist > 0) b.angle += dist / b.r;
       b.vx *= FRICTION;
       b.vy *= FRICTION;
       if(Math.abs(b.vx) < STOP_SPEED) b.vx = 0;
@@ -421,10 +560,14 @@
     return balls.filter(b=> !b.potted && b.type===group).length;
   }
 
+  function ballsPotted(group){
+    return group ? balls.filter(b=>b.type===group && b.potted).length : 0;
+  }
+
   function updateHUD(){
+    function label(g){ return g===SOLID? 'Plain balls' : 'Numbered balls'; }
     document.getElementById('p1group').textContent = 'Group: ' + (state.groups[1] ? label(state.groups[1]) : '—');
     document.getElementById('p2group').textContent = 'Group: ' + (state.groups[2] ? label(state.groups[2]) : '—');
-    function label(g){ return g===SOLID? 'Solids' : 'Stripes'; }
     renderMiniBalls('p1balls', state.groups[1]);
     renderMiniBalls('p2balls', state.groups[2]);
     document.getElementById('p1box').style.opacity = state.currentPlayer===1?1:.55;
@@ -432,6 +575,8 @@
     document.getElementById('p1coins').textContent = '🪙 ' + state.balance[1];
     document.getElementById('p2coins').textContent = '🪙 ' + state.balance[2];
     document.getElementById('potAmount').textContent = state.wager*2;
+    document.getElementById('p1score').textContent = ballsPotted(state.groups[1]);
+    document.getElementById('p2score').textContent = ballsPotted(state.groups[2]);
   }
 
   function renderMiniBalls(elId, group){
@@ -443,6 +588,9 @@
       d.className='mini-ball';
       d.style.background = b.potted ? 'transparent' : b.color;
       d.style.border = b.potted ? '1px dashed #555' : '1px solid rgba(0,0,0,.4)';
+      if(!b.potted && group===STRIPE){
+        d.style.boxShadow = 'inset 0 0 0 4px rgba(245,243,234,.9)';
+      }
       el.appendChild(d);
     });
   }
@@ -473,7 +621,6 @@
     const sc = state.shotContacts;
     const cp = state.currentPlayer;
     const other = cp===1?2:1;
-    const eightBall = balls.find(b=>b.type===EIGHT);
     const eightPotted = sc.potted.some(b=>b.type===EIGHT);
 
     if(eightPotted){
@@ -529,6 +676,7 @@
       state.currentPlayer = other;
     }
     updateHUD();
+    if(!state.ballInHand) drawTable();
   }
 
   function spotCueIfNeeded(){
@@ -574,13 +722,23 @@
       ctx.stroke();
     });
 
-    // aim line
-    if(state.aiming && state.dragStart && state.dragCurrent && !ballsMoving() && !state.gameOver){
+    // aim line — the cue stays visible and tracks the pointer whenever it's a
+    // player's turn to shoot, not only while the shot is being dragged, so
+    // there's always a cue "there" ready before you click.
+    const canShowCue = !ballsMoving() && !state.gameOver && !state.ballInHand &&
+      (state.aiming ? (state.dragStart && state.dragCurrent) : state.hoverAngle!==null);
+    if(canShowCue){
       const cue = balls.find(b=>b.id==='cue');
-      const dx = state.dragStart.x - state.dragCurrent.x;
-      const dy = state.dragStart.y - state.dragCurrent.y;
-      const dragDist = Math.min(Math.hypot(dx,dy), MAX_DRAG);
-      const angle = Math.atan2(dy,dx);
+      let dragDist, angle;
+      if(state.aiming){
+        const dx = state.dragStart.x - state.dragCurrent.x;
+        const dy = state.dragStart.y - state.dragCurrent.y;
+        dragDist = Math.min(Math.hypot(dx,dy), MAX_DRAG);
+        angle = Math.atan2(dy,dx);
+      } else {
+        dragDist = 0;
+        angle = state.hoverAngle;
+      }
       const dirX = Math.cos(angle), dirY = Math.sin(angle);
       // guide line forward from cue ball
       ctx.beginPath();
@@ -591,7 +749,9 @@
       ctx.setLineDash([6,6]);
       ctx.stroke();
       ctx.setLineDash([]);
-      // cue stick — tip rests against the ball, butt pulls back with power
+      // cue stick — tip rests against the ball, butt pulls back with power.
+      // Rendered as a realistic wood/gold cue: pale tip, colored wrap, dark
+      // butt, with two accent joint rings near the tip.
       const c = currentCue();
       const tipGap = 2.5;
       const stickLen = 230 + dragDist*1.4;
@@ -599,7 +759,8 @@
       const buttX = tipX - dirX*stickLen, buttY = tipY - dirY*stickLen;
       const grad = ctx.createLinearGradient(tipX,tipY,buttX,buttY);
       grad.addColorStop(0, c.tipColor);
-      grad.addColorStop(0.18, c.midColor);
+      grad.addColorStop(0.1, c.tipColor);
+      grad.addColorStop(0.22, c.midColor);
       grad.addColorStop(1, c.buttColor);
       ctx.beginPath();
       ctx.moveTo(tipX,tipY);
@@ -609,6 +770,14 @@
       ctx.lineCap='round';
       ctx.stroke();
 
+      [tipGap+18, tipGap+32].forEach(off=>{
+        const rx = cue.x - dirX*off, ry = cue.y - dirY*off;
+        ctx.beginPath();
+        ctx.arc(rx, ry, 4, 0, Math.PI*2);
+        ctx.fillStyle = c.ringColor;
+        ctx.fill();
+      });
+
       const powerFrac = dragDist/MAX_DRAG;
       document.getElementById('powerFill').style.height = (powerFrac*100)+'%';
     } else {
@@ -616,42 +785,48 @@
     }
 
     // balls
+    // Plain-group balls render as a single solid color (no markings).
+    // Numbered-group balls (and the 8-ball) show a white center circle and
+    // their number, so the two players' ball sets never look identical.
     balls.forEach(b=>{
       if(b.potted) return;
       ctx.save();
       ctx.beginPath();
       ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-      if(b.type===STRIPE){
-        ctx.fillStyle = '#f5f3ea';
-        ctx.fill();
-        ctx.save();
-        ctx.clip();
-        ctx.fillStyle = b.color;
-        ctx.fillRect(b.x-b.r, b.y-b.r*0.55, b.r*2, b.r*1.1);
-        ctx.restore();
-      } else {
-        ctx.fillStyle = b.color;
-        ctx.fill();
-      }
+      ctx.fillStyle = b.color;
+      ctx.fill();
       ctx.lineWidth=1;
       ctx.strokeStyle='rgba(0,0,0,.35)';
       ctx.stroke();
-      if(b.type!==CUE){
+
+      ctx.translate(b.x, b.y);
+
+      // fixed specular highlight (light source doesn't move with the ball)
+      ctx.beginPath();
+      ctx.arc(-b.r*0.35, -b.r*0.35, b.r*0.28, 0, Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.35)';
+      ctx.fill();
+
+      // surface markings spin with the ball's rotation angle so it reads as
+      // rolling along its path rather than sliding from point to point
+      ctx.rotate(b.angle || 0);
+      if(b.type===STRIPE || b.type===EIGHT){
         ctx.beginPath();
-        ctx.arc(b.x,b.y,b.r*0.55,0,Math.PI*2);
+        ctx.arc(0,0,b.r*0.55,0,Math.PI*2);
         ctx.fillStyle = '#f5f3ea';
         ctx.fill();
         ctx.fillStyle = '#111';
         ctx.font = 'bold 9px sans-serif';
         ctx.textAlign='center';
         ctx.textBaseline='middle';
-        ctx.fillText(b.n, b.x, b.y+0.5);
+        ctx.fillText(b.n, 0, 0.5);
+      } else if(b.type===SOLID){
+        // small rolling fleck so plain balls also visibly spin
+        ctx.beginPath();
+        ctx.arc(b.r*0.6, 0, b.r*0.14, 0, Math.PI*2);
+        ctx.fillStyle='rgba(0,0,0,.3)';
+        ctx.fill();
       }
-      // subtle highlight
-      ctx.beginPath();
-      ctx.arc(b.x-b.r*0.35, b.y-b.r*0.35, b.r*0.28, 0, Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.35)';
-      ctx.fill();
       ctx.restore();
     });
 
@@ -728,9 +903,17 @@
       drawTable();
       return;
     }
-    if(!state.aiming) return;
-    state.dragCurrent = canvasPoint(e);
-    drawTable();
+    if(state.aiming){
+      state.dragCurrent = canvasPoint(e);
+      drawTable();
+      return;
+    }
+    if(!state.gameOver && !ballsMoving() && !state.ballInHand){
+      const pt = canvasPoint(e);
+      const cue = balls.find(b=>b.id==='cue');
+      state.hoverAngle = Math.atan2(pt.y-cue.y, pt.x-cue.x);
+      drawTable();
+    }
   });
   window.addEventListener('mouseup', e=>{
     if(state.placingBall){ state.placingBall = false; return; }
@@ -755,6 +938,13 @@
   document.getElementById('restartBtn').addEventListener('click', restartGame);
   document.getElementById('restartBtn2').addEventListener('click', restartGame);
 
+  document.getElementById('chatIcon').addEventListener('click', ()=>{
+    alert('Chat is not available in this demo.');
+  });
+  document.getElementById('settingsIcon').addEventListener('click', ()=>{
+    if(confirm('Restart the match?')) restartGame();
+  });
+
   function updateEquippedCueMsg(){
     const c = currentCue();
     document.getElementById('equippedCueMsg').textContent =
@@ -778,8 +968,14 @@
     document.getElementById('aimHint').style.display = on ? 'none' : 'block';
   }
 
+  function defaultHoverAngle(){
+    const cue = balls.find(b=>b.id==='cue');
+    return Math.atan2((PLAY.top+PLAY.bottom)/2 - cue.y, (PLAY.left+PLAY.right)/2 - cue.x);
+  }
+
   document.getElementById('confirmPlaceBtn').addEventListener('click', ()=>{
     setBallInHand(false);
+    state.hoverAngle = defaultHoverAngle();
     drawTable();
   });
 
@@ -787,12 +983,6 @@
     document.getElementById('cueMenu').classList.remove('show');
     document.getElementById('gameWrap').hidden = false;
     updateEquippedCueMsg();
-  });
-  document.getElementById('changeCueBtn').addEventListener('click', ()=>{
-    if(ballsMoving()) return;
-    renderCueMenu();
-    document.getElementById('cueMenu').classList.add('show');
-    document.getElementById('gameWrap').hidden = true;
   });
 
   function restartGame(){
@@ -814,6 +1004,7 @@
   setBallInHand(true);
   drawTable();
   renderCueMenu();
+  renderCueRack();
 })();
 </script>
 </body>
