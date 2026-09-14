@@ -226,7 +226,7 @@
   <div class="corner-icon" id="chatIcon" title="Chat">💬</div>
   <div class="corner-icon" id="settingsIcon" title="Settings">⚙️</div>
 
-  <h1>◆ POOL 2026 ◆</h1>
+  <h1>◆ 8 POOL  ◆</h1>
 
   <div class="overlay show" id="cueMenu">
     <div class="menuInner">
@@ -740,15 +740,71 @@
         angle = state.hoverAngle;
       }
       const dirX = Math.cos(angle), dirY = Math.sin(angle);
-      // guide line forward from cue ball
+
+      // distance to the rail along a ray from (px,py) in direction (dx,dy) —
+      // used to cap guide lines at the cushion instead of an arbitrary length
+      function railDist(px,py,dx,dy){
+        let dist = Infinity;
+        if(dx>0) dist = Math.min(dist,(PLAY.right-px)/dx);
+        if(dx<0) dist = Math.min(dist,(PLAY.left-px)/dx);
+        if(dy>0) dist = Math.min(dist,(PLAY.bottom-py)/dy);
+        if(dy<0) dist = Math.min(dist,(PLAY.top-py)/dy);
+        return dist;
+      }
+
+      // find the first object ball the cue ball would strike along this aim
+      let nearestHit = null;
+      const combinedR = BALL_R*2;
+      balls.forEach(b=>{
+        if(b.potted || b.id==='cue') return;
+        const Lx = b.x-cue.x, Ly = b.y-cue.y;
+        const tca = Lx*dirX + Ly*dirY;
+        if(tca<0) return;
+        const d2 = Lx*Lx+Ly*Ly - tca*tca;
+        const rr = combinedR*combinedR;
+        if(d2>rr) return;
+        const t0 = tca - Math.sqrt(rr-d2);
+        if(t0<0) return;
+        if(!nearestHit || t0<nearestHit.t) nearestHit = {ball:b, t:t0};
+      });
+
+      // guide line forward from cue ball — stops at the ball it will hit,
+      // or the rail if the shot is clear
+      const mainLen = nearestHit ? nearestHit.t : railDist(cue.x,cue.y,dirX,dirY);
       ctx.beginPath();
       ctx.moveTo(cue.x, cue.y);
-      ctx.lineTo(cue.x + dirX*600, cue.y + dirY*600);
+      ctx.lineTo(cue.x + dirX*mainLen, cue.y + dirY*mainLen);
       ctx.strokeStyle = 'rgba(255,255,255,.55)';
       ctx.lineWidth = 1.5;
       ctx.setLineDash([6,6]);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // second line: predicted path of the struck object ball toward the
+      // rail/pocket, so the aim shows two views — where the cue ball goes,
+      // and where the ball it hits will travel.
+      if(nearestHit){
+        const contactX = cue.x + dirX*nearestHit.t, contactY = cue.y + dirY*nearestHit.t;
+        const b = nearestHit.ball;
+        const impDx = b.x-contactX, impDy = b.y-contactY;
+        const impLen = Math.hypot(impDx,impDy) || 1;
+        const iDirX = impDx/impLen, iDirY = impDy/impLen;
+        const predictLen = railDist(b.x,b.y,iDirX,iDirY);
+        ctx.beginPath();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x + iDirX*predictLen, b.y + iDirY*predictLen);
+        ctx.strokeStyle = 'rgba(233,196,106,.75)';
+        ctx.lineWidth = 1.5;
+        ctx.setLineDash([3,5]);
+        ctx.stroke();
+        ctx.setLineDash([]);
+        // ghost-ball ring showing where the cue ball contacts the object ball
+        ctx.beginPath();
+        ctx.arc(contactX, contactY, BALL_R, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(255,255,255,.4)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+      }
       // cue stick — tip rests against the ball, butt pulls back with power.
       // Rendered as a realistic wood/gold cue: pale tip, colored wrap, dark
       // butt, with two accent joint rings near the tip.
