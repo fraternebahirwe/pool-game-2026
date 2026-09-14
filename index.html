@@ -12,15 +12,22 @@
     --neon-magenta:#ff2fd0;
     --gold:#e9c46a;
     --text:#e8e6ff;
-    --felt:#3d1a78;
-    --felt-dark:#2a1156;
-    --rail:#160829;
-    --rail-edge:#0a0416;
+    --felt:#7a7856;
+    --felt-dark:#4f4d38;
+    --rail:#c9a869;
+    --rail-edge:#7a5a2e;
+    --rail-light:#ecdcae;
   }
   *{box-sizing:border-box;}
   html,body{
     margin:0;padding:0;height:100%;
-    background:radial-gradient(circle at 50% 0%, #1a0f3d, var(--bg-deep) 70%);
+    background-color:#0f2038;
+    background-image:
+      linear-gradient(135deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%),
+      linear-gradient(45deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%),
+      radial-gradient(circle at 50% 0%, #1a3a5c, #0f2038 70%);
+    background-size:46px 46px, 46px 46px, 100% 100%;
+    background-position:0 0, 23px 23px, 0 0;
     color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;
     display:flex;flex-direction:column;align-items:center;
@@ -141,15 +148,15 @@
   .rack-thumb.selected{ border-color:var(--neon-cyan); box-shadow:0 0 8px rgba(40,240,255,.5); }
   .table-shell{
     position:relative;
-    border-radius:26px;
-    padding:26px;
-    background:linear-gradient(160deg,#241049,var(--rail) 60%,var(--rail-edge));
+    border-radius:14px;
+    padding:8px;
+    background:var(--rail-edge);
     box-shadow:0 0 0 2px rgba(233,196,106,.35), 0 10px 40px rgba(0,0,0,.6);
   }
   canvas{
     display:block;
     border-radius:8px;
-    background:radial-gradient(ellipse at 50% 30%, var(--felt), var(--felt-dark) 85%);
+    background:linear-gradient(160deg,var(--rail-light),var(--rail) 55%,var(--rail-edge));
     cursor:crosshair;
     width:100%;
     height:auto;
@@ -157,17 +164,45 @@
   }
   .power-wrap{
     position:absolute;
-    right:-2px;top:26px;bottom:26px;
+    right:-34px;top:60px;bottom:80px;
     width:26px;
-    background:rgba(0,0,0,.35);
+    background-image:
+      repeating-linear-gradient(180deg, rgba(255,255,255,.35) 0 1px, transparent 1px 7px),
+      linear-gradient(180deg,#3a3a3a,#111);
     border-radius:8px;
-    border:1px solid var(--panel-border);
-    overflow:hidden;
+    border:2px solid #d8d8d8;
+    box-shadow:0 0 10px rgba(0,0,0,.5);
+    cursor:ns-resize;
   }
   #powerFill{
     position:absolute;bottom:0;left:0;right:0;height:0%;
     background:linear-gradient(0deg,var(--neon-cyan),var(--neon-magenta));
+    border-radius:0 0 7px 7px;
   }
+  .power-arrow{
+    position:absolute; left:-9px; bottom:0%;
+    width:0;height:0;
+    border-top:6px solid transparent;
+    border-bottom:6px solid transparent;
+    border-right:9px solid var(--gold);
+    filter:drop-shadow(0 0 3px rgba(0,0,0,.6));
+  }
+  .shoot-btn{
+    position:absolute; right:-44px; bottom:20px;
+    width:46px;height:46px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #cfd3da 75%);
+    border:2px solid rgba(0,0,0,.25);
+    cursor:pointer;
+    box-shadow:0 3px 8px rgba(0,0,0,.5);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .shoot-btn span{
+    width:9px;height:9px;border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ff8a7a, #c8281a);
+  }
+  .shoot-btn:hover{ filter:brightness(1.05); }
+  .shoot-btn:active{ transform:scale(0.94); }
+  .shoot-btn:disabled{ opacity:.4; cursor:default; }
   .footer-msg{
     text-align:center;margin-top:12px;font-size:12.5px;opacity:.7;
   }
@@ -281,7 +316,7 @@
       <div class="cue-rack" id="cueRack">
         <div class="rack-title">CUE</div>
         <div class="rack-spin">0</div>
-        <div class="rack-cue-preview">
+        <div class="rack-cue-preview" id="rackCuePreview">
           <div class="rack-cue-bar" id="rackCueBar"></div>
           <div class="rack-cue-ring" id="rackRing1"></div>
           <div class="rack-cue-ring" id="rackRing2"></div>
@@ -292,11 +327,15 @@
 
       <div class="table-shell">
         <canvas id="table" width="1000" height="520"></canvas>
-        <div class="power-wrap"><div id="powerFill"></div></div>
+        <div class="power-wrap" id="powerWrap">
+          <div id="powerFill"></div>
+          <div class="power-arrow" id="powerArrow"></div>
+        </div>
+        <button class="shoot-btn" id="shootBtn" title="Shoot"><span></span></button>
       </div>
     </div>
 
-    <div class="footer-msg" id="aimHint">Click &amp; drag away from the cue ball to aim, pull further back for more power, release to shoot.</div>
+    <div class="footer-msg" id="aimHint">Aim on the table, then either drag back from the cue ball to shoot, or set power with the rack cue / ruler on the right and press the shoot button.</div>
     <div class="footer-msg" id="equippedCueMsg" style="color:var(--gold);"></div>
     <div id="ballInHandBar" style="display:none;text-align:center;margin-top:8px;">
       <span style="color:var(--neon-cyan);font-size:13px;font-weight:600;">Ball in hand — drag the white ball anywhere on the table, then confirm.</span>
@@ -316,7 +355,7 @@
   const ctx = canvas.getContext('2d');
   const W = canvas.width, H = canvas.height;
 
-  const RAIL = 34;
+  const RAIL = 52;
   const PLAY = { left:RAIL, top:RAIL, right:W-RAIL, bottom:H-RAIL };
   const BALL_R = 11;
   const POCKET_R = 22;
@@ -353,6 +392,18 @@
   ];
 
   let balls = [];
+
+  // lighten/darken a #rrggbb color by fraction f (-1..1) for glossy shading
+  function shade(hex, f){
+    const n = parseInt(hex.slice(1),16);
+    let r=(n>>16)&255, g=(n>>8)&255, b=n&255;
+    const mix = f>0 ? 255 : 0;
+    const amt = Math.abs(f);
+    r = Math.round(r + (mix-r)*amt);
+    g = Math.round(g + (mix-g)*amt);
+    b = Math.round(b + (mix-b)*amt);
+    return `rgb(${r},${g},${b})`;
+  }
 
   function rackPositions(){
     // apex near right third, cue ball near left third (like reference layout, mirrored to taste)
@@ -401,6 +452,11 @@
     placingBall:false,
     balance:{1:1500, 2:1500},
     wager:150,
+    power:0, // 0..1, set via the rack cue pull or the ruler, fired by the shoot button
+    rackDragging:false,
+    rackDragStartY:0,
+    rackStartPower:0,
+    rulerDragging:false,
   };
 
   const MAX_DRAG = 140;
@@ -480,6 +536,29 @@
 
   function resetShotTracking(){
     state.shotContacts = {firstHitType:null, potted:[], cueScratched:false};
+  }
+
+  // shared by all three ways to shoot: releasing a table drag, or pressing
+  // the shoot button after setting power via the rack cue or the ruler
+  function fireShot(angle, powerFrac){
+    const cue = balls.find(b=>b.id==='cue');
+    const power = powerFrac*maxPowerForCue();
+    cue.vx = Math.cos(angle)*power;
+    cue.vy = Math.sin(angle)*power;
+    resetShotTracking();
+    state.inMotion = true;
+    state.power = 0;
+    updatePowerVisuals(0);
+    loop();
+  }
+
+  // reflects the current power level (0..1) on the ruler fill+arrow and by
+  // sliding the rack cue back in its slot, regardless of which control set it
+  function updatePowerVisuals(frac){
+    document.getElementById('powerFill').style.height = (frac*100)+'%';
+    document.getElementById('powerArrow').style.bottom = `calc(${frac*100}% - 6px)`;
+    document.getElementById('rackCuePreview').style.transform =
+      `rotate(-18deg) translateY(${frac*26}px)`;
   }
 
   // ---------- physics ----------
@@ -565,7 +644,7 @@
   }
 
   function updateHUD(){
-    function label(g){ return g===SOLID? 'Plain balls' : 'Numbered balls'; }
+    function label(g){ return g===SOLID? 'Solids (1-7)' : 'Stripes (9-15)'; }
     document.getElementById('p1group').textContent = 'Group: ' + (state.groups[1] ? label(state.groups[1]) : '—');
     document.getElementById('p2group').textContent = 'Group: ' + (state.groups[2] ? label(state.groups[2]) : '—');
     renderMiniBalls('p1balls', state.groups[1]);
@@ -588,9 +667,6 @@
       d.className='mini-ball';
       d.style.background = b.potted ? 'transparent' : b.color;
       d.style.border = b.potted ? '1px dashed #555' : '1px solid rgba(0,0,0,.4)';
-      if(!b.potted && group===STRIPE){
-        d.style.boxShadow = 'inset 0 0 0 4px rgba(245,243,234,.9)';
-      }
       el.appendChild(d);
     });
   }
@@ -694,21 +770,89 @@
     cue.x = x; cue.y = y;
   }
 
+  // corner scroll ornament (carved-gold look), drawn in the wood rail band —
+  // shape occupies the (0,0)-(size,size) quadrant and is rotated per corner
+  // so it always curls inward, toward the table
+  function drawCornerFlourish(x,y,angle,size){
+    ctx.save();
+    ctx.translate(x,y);
+    ctx.rotate(angle);
+    const g = ctx.createLinearGradient(0,0,size,size);
+    g.addColorStop(0,'#fff3cf');
+    g.addColorStop(0.55,'#e0b04a');
+    g.addColorStop(1,'#8a5a12');
+    ctx.fillStyle = g;
+    ctx.strokeStyle = 'rgba(50,30,5,.8)';
+    ctx.lineWidth = 1.4;
+
+    // primary scroll leaf
+    ctx.beginPath();
+    ctx.moveTo(2,2);
+    ctx.bezierCurveTo(-2, size*0.65, size*0.65, -2, size, 2);
+    ctx.bezierCurveTo(size*0.62, size*0.22, size*0.22, size*0.62, 2, 2);
+    ctx.closePath();
+    ctx.fill(); ctx.stroke();
+
+    // nested highlight curl for a carved/relief look
+    ctx.beginPath();
+    ctx.moveTo(6,6);
+    ctx.bezierCurveTo(4, size*0.38, size*0.38, 4, size*0.62, 7);
+    ctx.bezierCurveTo(size*0.36, 10, 10, size*0.36, 6, 6);
+    ctx.closePath();
+    ctx.fillStyle = 'rgba(255,255,255,.4)';
+    ctx.fill();
+
+    // tip gem
+    ctx.beginPath();
+    ctx.arc(size-4, 4, 3.6, 0, Math.PI*2);
+    ctx.fillStyle = g;
+    ctx.fill();
+    ctx.stroke();
+    ctx.restore();
+  }
+
   // ---------- rendering ----------
   function drawTable(){
     ctx.clearRect(0,0,W,H);
 
+    // wood rail bevel: a bright inner lip where the cushion meets the rail,
+    // and a dark outer edge, so the wood reads as a raised frame
+    ctx.strokeStyle = 'rgba(255,255,255,.3)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(PLAY.left-12, PLAY.top-12, (PLAY.right-PLAY.left)+24, (PLAY.bottom-PLAY.top)+24);
+    ctx.strokeStyle = 'rgba(0,0,0,.35)';
+    ctx.lineWidth = 4;
+    ctx.strokeRect(2,2,W-4,H-4);
+
+    // gold scroll flourishes anchored right at each canvas corner, curling
+    // inward across the wood rail band toward the table
+    const fSize = 42, fInset = 4;
+    drawCornerFlourish(fInset, fInset, 0, fSize);
+    drawCornerFlourish(W-fInset, fInset, Math.PI/2, fSize);
+    drawCornerFlourish(W-fInset, H-fInset, Math.PI, fSize);
+    drawCornerFlourish(fInset, H-fInset, -Math.PI/2, fSize);
+
+    // felt cushion — filled explicitly so the wood rail (canvas background)
+    // shows only in the band outside this rectangle
+    const feltPad = 8;
+    const feltGrad = ctx.createRadialGradient(W/2,H*0.32,40, W/2,H/2, W*0.62);
+    feltGrad.addColorStop(0, '#8b8862');
+    feltGrad.addColorStop(1, '#4f4d38');
+    ctx.fillStyle = feltGrad;
+    ctx.fillRect(PLAY.left-feltPad, PLAY.top-feltPad,
+      (PLAY.right-PLAY.left)+feltPad*2, (PLAY.bottom-PLAY.top)+feltPad*2);
+
     // diamond markers on rails
-    ctx.fillStyle = 'rgba(233,196,106,.55)';
+    ctx.fillStyle = 'rgba(255,240,200,.85)';
     for(let i=1;i<8;i++){
       const x = PLAY.left + (PLAY.right-PLAY.left)*i/8;
-      ctx.beginPath(); ctx.arc(x, PLAY.top-16, 2.6,0,7); ctx.fill();
-      ctx.beginPath(); ctx.arc(x, PLAY.bottom+16, 2.6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, PLAY.top-26, 2.6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(x, PLAY.bottom+26, 2.6,0,7); ctx.fill();
     }
     for(let i=1;i<4;i++){
       const y = PLAY.top + (PLAY.bottom-PLAY.top)*i/4;
-      ctx.beginPath(); ctx.arc(PLAY.left-16, y, 2.6,0,7); ctx.fill();
-      ctx.beginPath(); ctx.arc(PLAY.right+16, y, 2.6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(PLAY.left-26, y, 2.6,0,7); ctx.fill();
+      ctx.beginPath(); ctx.arc(PLAY.right+26, y, 2.6,0,7); ctx.fill();
     }
 
     // pockets
@@ -717,8 +861,8 @@
       ctx.arc(p.x,p.y,POCKET_R,0,Math.PI*2);
       ctx.fillStyle = '#000';
       ctx.fill();
-      ctx.strokeStyle = 'rgba(40,240,255,.35)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = 'rgba(233,196,106,.7)';
+      ctx.lineWidth = 3;
       ctx.stroke();
     });
 
@@ -742,7 +886,8 @@
       const dirX = Math.cos(angle), dirY = Math.sin(angle);
 
       // distance to the rail along a ray from (px,py) in direction (dx,dy) —
-      // used to cap guide lines at the cushion instead of an arbitrary length
+      // caps the guide line at the cushion so it reads as one long line
+      // spanning the table, matching the reference (no bend, no fixed length)
       function railDist(px,py,dx,dy){
         let dist = Infinity;
         if(dx>0) dist = Math.min(dist,(PLAY.right-px)/dx);
@@ -752,25 +897,7 @@
         return dist;
       }
 
-      // find the first object ball the cue ball would strike along this aim
-      let nearestHit = null;
-      const combinedR = BALL_R*2;
-      balls.forEach(b=>{
-        if(b.potted || b.id==='cue') return;
-        const Lx = b.x-cue.x, Ly = b.y-cue.y;
-        const tca = Lx*dirX + Ly*dirY;
-        if(tca<0) return;
-        const d2 = Lx*Lx+Ly*Ly - tca*tca;
-        const rr = combinedR*combinedR;
-        if(d2>rr) return;
-        const t0 = tca - Math.sqrt(rr-d2);
-        if(t0<0) return;
-        if(!nearestHit || t0<nearestHit.t) nearestHit = {ball:b, t:t0};
-      });
-
-      // guide line forward from cue ball — stops at the ball it will hit,
-      // or the rail if the shot is clear
-      const mainLen = nearestHit ? nearestHit.t : railDist(cue.x,cue.y,dirX,dirY);
+      const mainLen = railDist(cue.x,cue.y,dirX,dirY);
       ctx.beginPath();
       ctx.moveTo(cue.x, cue.y);
       ctx.lineTo(cue.x + dirX*mainLen, cue.y + dirY*mainLen);
@@ -780,76 +907,68 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
-      // second line: predicted path of the struck object ball toward the
-      // rail/pocket, so the aim shows two views — where the cue ball goes,
-      // and where the ball it hits will travel.
-      if(nearestHit){
-        const contactX = cue.x + dirX*nearestHit.t, contactY = cue.y + dirY*nearestHit.t;
-        const b = nearestHit.ball;
-        const impDx = b.x-contactX, impDy = b.y-contactY;
-        const impLen = Math.hypot(impDx,impDy) || 1;
-        const iDirX = impDx/impLen, iDirY = impDy/impLen;
-        const predictLen = railDist(b.x,b.y,iDirX,iDirY);
-        ctx.beginPath();
-        ctx.moveTo(b.x, b.y);
-        ctx.lineTo(b.x + iDirX*predictLen, b.y + iDirY*predictLen);
-        ctx.strokeStyle = 'rgba(233,196,106,.75)';
-        ctx.lineWidth = 1.5;
-        ctx.setLineDash([3,5]);
-        ctx.stroke();
-        ctx.setLineDash([]);
-        // ghost-ball ring showing where the cue ball contacts the object ball
-        ctx.beginPath();
-        ctx.arc(contactX, contactY, BALL_R, 0, Math.PI*2);
-        ctx.strokeStyle = 'rgba(255,255,255,.4)';
-        ctx.lineWidth = 1;
-        ctx.stroke();
-      }
       // cue stick — tip rests against the ball, butt pulls back with power.
-      // Rendered as a realistic wood/gold cue: pale tip, colored wrap, dark
-      // butt, with two accent joint rings near the tip.
+      // A real cue tapers (thin tip, thick butt), so it's drawn as a filled
+      // quadrilateral along the aim axis rather than a constant-width line.
       const c = currentCue();
       const tipGap = 2.5;
-      const stickLen = 230 + dragDist*1.4;
+      const stickLen = 340 + dragDist*1.4;
       const tipX = cue.x - dirX*(cue.r+tipGap), tipY = cue.y - dirY*(cue.r+tipGap);
       const buttX = tipX - dirX*stickLen, buttY = tipY - dirY*stickLen;
       const grad = ctx.createLinearGradient(tipX,tipY,buttX,buttY);
       grad.addColorStop(0, c.tipColor);
-      grad.addColorStop(0.1, c.tipColor);
-      grad.addColorStop(0.22, c.midColor);
+      grad.addColorStop(0.08, c.tipColor);
+      grad.addColorStop(0.2, c.midColor);
       grad.addColorStop(1, c.buttColor);
+
+      const nx = -dirY, ny = dirX; // perpendicular to the cue's axis
+      const tipHalf = 2, buttHalf = 7.5;
       ctx.beginPath();
-      ctx.moveTo(tipX,tipY);
-      ctx.lineTo(buttX,buttY);
-      ctx.strokeStyle = grad;
-      ctx.lineWidth = 6;
-      ctx.lineCap='round';
+      ctx.moveTo(tipX+nx*tipHalf, tipY+ny*tipHalf);
+      ctx.lineTo(buttX+nx*buttHalf, buttY+ny*buttHalf);
+      ctx.lineTo(buttX-nx*buttHalf, buttY-ny*buttHalf);
+      ctx.lineTo(tipX-nx*tipHalf, tipY-ny*tipHalf);
+      ctx.closePath();
+      ctx.fillStyle = grad;
+      ctx.fill();
+      ctx.strokeStyle = 'rgba(0,0,0,.4)';
+      ctx.lineWidth = 1;
       ctx.stroke();
 
-      [tipGap+18, tipGap+32].forEach(off=>{
+      [tipGap+26, tipGap+46].forEach(off=>{
         const rx = cue.x - dirX*off, ry = cue.y - dirY*off;
+        const ringHalf = tipHalf + (buttHalf-tipHalf)*Math.min(off/stickLen,1);
         ctx.beginPath();
-        ctx.arc(rx, ry, 4, 0, Math.PI*2);
-        ctx.fillStyle = c.ringColor;
-        ctx.fill();
+        ctx.moveTo(rx+nx*(ringHalf+1.5), ry+ny*(ringHalf+1.5));
+        ctx.lineTo(rx-nx*(ringHalf+1.5), ry-ny*(ringHalf+1.5));
+        ctx.strokeStyle = c.ringColor;
+        ctx.lineWidth = 3;
+        ctx.stroke();
       });
 
-      const powerFrac = dragDist/MAX_DRAG;
-      document.getElementById('powerFill').style.height = (powerFrac*100)+'%';
-    } else {
-      document.getElementById('powerFill').style.height = '0%';
+      // while table-dragging, the drag distance is the source of truth for
+      // power; otherwise state.power holds whatever the rack/ruler last set
+      if(state.aiming) state.power = dragDist/MAX_DRAG;
     }
+    updatePowerVisuals(state.power);
 
-    // balls
-    // Plain-group balls render as a single solid color (no markings).
-    // Numbered-group balls (and the 8-ball) show a white center circle and
-    // their number, so the two players' ball sets never look identical.
+    // balls — every ball (solids, stripes, and the 8-ball) shows its color
+    // plus a white number circle, matching the reference art
     balls.forEach(b=>{
       if(b.potted) return;
       ctx.save();
       ctx.beginPath();
       ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
-      ctx.fillStyle = b.color;
+      // glossy 3D shading: bright highlight near upper-left, true color at
+      // mid-radius, darker toward the rim — instead of a flat color fill
+      const glossGrad = ctx.createRadialGradient(
+        b.x-b.r*0.42, b.y-b.r*0.42, b.r*0.08,
+        b.x, b.y, b.r*1.05
+      );
+      glossGrad.addColorStop(0, shade(b.color,0.55));
+      glossGrad.addColorStop(0.45, b.color);
+      glossGrad.addColorStop(1, shade(b.color,-0.35));
+      ctx.fillStyle = glossGrad;
       ctx.fill();
       ctx.lineWidth=1;
       ctx.strokeStyle='rgba(0,0,0,.35)';
@@ -857,16 +976,16 @@
 
       ctx.translate(b.x, b.y);
 
-      // fixed specular highlight (light source doesn't move with the ball)
+      // sharp specular glint (light source doesn't move with the ball)
       ctx.beginPath();
-      ctx.arc(-b.r*0.35, -b.r*0.35, b.r*0.28, 0, Math.PI*2);
-      ctx.fillStyle='rgba(255,255,255,.35)';
+      ctx.arc(-b.r*0.4, -b.r*0.4, b.r*0.18, 0, Math.PI*2);
+      ctx.fillStyle='rgba(255,255,255,.75)';
       ctx.fill();
 
       // surface markings spin with the ball's rotation angle so it reads as
       // rolling along its path rather than sliding from point to point
-      ctx.rotate(b.angle || 0);
-      if(b.type===STRIPE || b.type===EIGHT){
+      if(b.type!==CUE){
+        ctx.rotate(b.angle || 0);
         ctx.beginPath();
         ctx.arc(0,0,b.r*0.55,0,Math.PI*2);
         ctx.fillStyle = '#f5f3ea';
@@ -876,12 +995,6 @@
         ctx.textAlign='center';
         ctx.textBaseline='middle';
         ctx.fillText(b.n, 0, 0.5);
-      } else if(b.type===SOLID){
-        // small rolling fleck so plain balls also visibly spin
-        ctx.beginPath();
-        ctx.arc(b.r*0.6, 0, b.r*0.14, 0, Math.PI*2);
-        ctx.fillStyle='rgba(0,0,0,.3)';
-        ctx.fill();
       }
       ctx.restore();
     });
@@ -964,6 +1077,8 @@
       drawTable();
       return;
     }
+    // don't let the rack/ruler power drags also drag the cursor's aim angle
+    if(state.rackDragging || state.rulerDragging) return;
     if(!state.gameOver && !ballsMoving() && !state.ballInHand){
       const pt = canvasPoint(e);
       const cue = balls.find(b=>b.id==='cue');
@@ -973,22 +1088,62 @@
   });
   window.addEventListener('mouseup', e=>{
     if(state.placingBall){ state.placingBall = false; return; }
+    state.rackDragging = false;
+    state.rulerDragging = false;
     if(!state.aiming) return;
-    const cue = balls.find(b=>b.id==='cue');
     const dx = state.dragStart.x - state.dragCurrent.x;
     const dy = state.dragStart.y - state.dragCurrent.y;
     const dragDist = Math.min(Math.hypot(dx,dy), MAX_DRAG);
     state.aiming = false;
     if(dragDist > 6){
-      const angle = Math.atan2(dy,dx);
-      const power = (dragDist/MAX_DRAG)*maxPowerForCue();
-      cue.vx = Math.cos(angle)*power;
-      cue.vy = Math.sin(angle)*power;
-      resetShotTracking();
-      state.inMotion = true;
-      loop();
+      fireShot(Math.atan2(dy,dx), dragDist/MAX_DRAG);
+    } else {
+      state.power = 0;
+      updatePowerVisuals(0);
     }
-    document.getElementById('powerFill').style.height='0%';
+  });
+
+  // left control: drag the rack cue itself downward to slowly pull it back
+  // and set shot power, mirroring a real pull-back gesture
+  const rackCuePreviewEl = document.getElementById('rackCuePreview');
+  rackCuePreviewEl.addEventListener('mousedown', e=>{
+    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    state.rackDragging = true;
+    state.rackDragStartY = e.clientY;
+    state.rackStartPower = state.power;
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!state.rackDragging) return;
+    const dy = e.clientY - state.rackDragStartY;
+    state.power = Math.max(0, Math.min(1, state.rackStartPower + dy/110));
+    updatePowerVisuals(state.power);
+  });
+
+  // right control: drag the ruler directly, or click a point on it, to set
+  // power; the shoot button then fires using the current aim + power
+  const powerWrapEl = document.getElementById('powerWrap');
+  function setPowerFromRulerEvent(e){
+    const rect = powerWrapEl.getBoundingClientRect();
+    const frac = 1 - (e.clientY-rect.top)/rect.height;
+    state.power = Math.max(0, Math.min(1, frac));
+    updatePowerVisuals(state.power);
+  }
+  powerWrapEl.addEventListener('mousedown', e=>{
+    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    state.rulerDragging = true;
+    setPowerFromRulerEvent(e);
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!state.rulerDragging) return;
+    setPowerFromRulerEvent(e);
+  });
+
+  document.getElementById('shootBtn').addEventListener('click', ()=>{
+    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    if(state.power<=0.02 || state.hoverAngle===null) return;
+    fireShot(state.hoverAngle, state.power);
   });
 
   document.getElementById('restartBtn').addEventListener('click', restartGame);
