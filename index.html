@@ -12,8 +12,9 @@
     --neon-magenta:#ff2fd0;
     --gold:#e9c46a;
     --text:#e8e6ff;
-    --felt:#7a7856;
-    --felt-dark:#4f4d38;
+    --felt:#1f9d5c;
+    --felt-dark:#0c5c34;
+    --felt-light:#38c47e;
     --rail:#c9a869;
     --rail-edge:#7a5a2e;
     --rail-light:#ecdcae;
@@ -65,7 +66,7 @@
   .player{
     display:flex;align-items:center;gap:10px;min-width:190px;
   }
-  .avatar-wrap{ position:relative; width:46px; height:46px; flex-shrink:0; }
+  .avatar-wrap{ position:relative; width:46px; height:46px; flex-shrink:0; filter:drop-shadow(0 0 6px rgba(40,240,255,.35)); }
   .avatar{
     width:46px;height:46px;border-radius:50%;
     background:linear-gradient(160deg,#2a1a55,#160b33);
@@ -93,14 +94,16 @@
     font-size:16px; font-weight:800; color:#fff; min-width:34px; text-align:center;
     padding:6px 12px;
   }
-  #p1score{ background:linear-gradient(180deg,#2c6fe0,#1a4a9e); }
-  #p2score{ background:linear-gradient(180deg,#e0362c,#a31e17); }
+  #p1score{ background:linear-gradient(180deg,#2c6fe0,#1a4a9e); box-shadow:0 0 10px rgba(44,111,224,.6) inset; }
+  #p2score{ background:linear-gradient(180deg,#e0362c,#a31e17); box-shadow:0 0 10px rgba(224,54,44,.6) inset; }
   .pot-badge{
     display:flex;align-items:center;gap:6px;justify-content:center;
     font-size:13px;font-weight:700;color:#fff;
     background:linear-gradient(180deg,#3a2a7a,#1f1450);
     padding:6px 14px;
+    box-shadow:0 0 12px rgba(233,196,106,.45) inset;
   }
+  .pot-badge .dice{ filter:drop-shadow(0 0 4px rgba(233,196,106,.8)); }
   .pot-badge .dice{font-size:15px;}
   .balls-left{display:flex;gap:4px;flex-wrap:wrap;max-width:170px;}
   #p2box .balls-left{ justify-content:flex-end; }
@@ -126,7 +129,7 @@
     background:linear-gradient(180deg,var(--bg-panel),#0f0726);
     border:1px solid var(--panel-border); border-radius:14px;
     padding:12px 10px; width:74px; flex-shrink:0;
-    box-shadow:0 0 18px rgba(0,0,0,.35);
+    box-shadow:0 0 18px rgba(0,0,0,.35), 0 0 16px rgba(40,240,255,.18);
   }
   .rack-title{ font-size:10.5px; letter-spacing:1px; opacity:.7; font-weight:700; }
   .rack-cue-preview{
@@ -203,6 +206,31 @@
   .shoot-btn:hover{ filter:brightness(1.05); }
   .shoot-btn:active{ transform:scale(0.94); }
   .shoot-btn:disabled{ opacity:.4; cursor:default; }
+  .spin-wrap{
+    position:absolute; right:-44px; bottom:-42px;
+    width:46px;height:46px;
+    cursor:pointer;
+  }
+  .spin-ball{
+    position:relative; width:100%; height:100%; border-radius:50%;
+    background:radial-gradient(circle at 35% 30%, #ffffff, #d7dae0 70%, #a9adb6 100%);
+    border:2px solid rgba(0,0,0,.3);
+    box-shadow:0 0 10px rgba(40,240,255,.4), 0 3px 8px rgba(0,0,0,.5);
+    overflow:hidden;
+  }
+  .spin-cross{
+    position:absolute; inset:0;
+    background:
+      linear-gradient(to right, transparent 48%, rgba(0,0,0,.15) 48%, rgba(0,0,0,.15) 52%, transparent 52%),
+      linear-gradient(to bottom, transparent 48%, rgba(0,0,0,.15) 48%, rgba(0,0,0,.15) 52%, transparent 52%);
+  }
+  .spin-dot{
+    position:absolute; width:10px;height:10px;border-radius:50%;
+    background:var(--neon-cyan);
+    box-shadow:0 0 6px rgba(40,240,255,.85);
+    left:50%; top:50%; transform:translate(-50%,-50%);
+    pointer-events:none;
+  }
   .footer-msg{
     text-align:center;margin-top:12px;font-size:12.5px;opacity:.7;
   }
@@ -332,10 +360,16 @@
           <div class="power-arrow" id="powerArrow"></div>
         </div>
         <button class="shoot-btn" id="shootBtn" title="Shoot"><span></span></button>
+        <div class="spin-wrap" id="spinWrap" title="Cue ball spin — drag off-center for follow/draw and side english">
+          <div class="spin-ball">
+            <div class="spin-cross"></div>
+            <div class="spin-dot" id="spinDot"></div>
+          </div>
+        </div>
       </div>
     </div>
 
-    <div class="footer-msg" id="aimHint">Drag the ruler on the right to aim, then pull the cue back in the rack on the left and release to shoot (or press the shoot button).</div>
+    <div class="footer-msg" id="aimHint">Drag the ruler on the right to aim, drag the white dot in the lower-right for spin, then pull the cue back in the rack on the left and release to shoot (or press the shoot button).</div>
     <div class="footer-msg" id="equippedCueMsg" style="color:var(--gold);"></div>
     <div id="ballInHandBar" style="display:none;text-align:center;margin-top:8px;">
       <span style="color:var(--neon-cyan);font-size:13px;font-weight:600;">Ball in hand — drag the white ball anywhere on the table, then confirm.</span>
@@ -454,10 +488,14 @@
     rackDragStartY:0,
     rackStartPower:0,
     rulerDragging:false,
+    spin:{x:0, y:0}, // -1..1, set by dragging the spin widget: x = left/right english, y = top(-1, follow)/bottom(+1, draw)
   };
 
   const MAX_DRAG = 140;
   const BASE_MAX_POWER = 14;
+  const SPIN_FOLLOW_STRENGTH = 0.55; // fraction of shot speed added/removed along the cue ball's heading on first contact
+  const SPIN_RAIL_STRENGTH = 0.5; // fraction of rail-parallel speed kicked sideways ("english") off a cushion
+  const SPIN_RAIL_DECAY = 0.45; // how much side-spin survives each cushion contact
 
   // ---------- cue selection ----------
   // Realistic cue art: dark wood/gold butt, lighter mid-wrap, pale leather tip,
@@ -475,6 +513,7 @@
 
   function currentCue(){ return cues.find(c=>c.id===selectedCueId); }
   function maxPowerForCue(){ return BASE_MAX_POWER * (currentCue().power/7); }
+  function maxSpinForCue(){ return currentCue().spin/10; }
 
   function cueStickGradientCSS(c, angleDeg){
     return `linear-gradient(${angleDeg}deg, ${c.tipColor} 0%, ${c.midColor} 22%, ${c.buttColor} 100%)`;
@@ -543,9 +582,18 @@
     cue.vx = Math.cos(angle)*power;
     cue.vy = Math.sin(angle)*power;
     resetShotTracking();
+    // spin is captured once at the moment of firing: the cue ball travels in
+    // a straight line (no curve) until its first contact, so the heading it
+    // fires along doubles as the direction "follow"/"draw" pushes along
+    state.shotContacts.cueDir = {x:Math.cos(angle), y:Math.sin(angle)};
+    state.shotContacts.spinY = state.spin.y;
+    state.shotContacts.spinApplied = false;
+    state.shotContacts.railSpinRemaining = state.spin.x;
+    state.shotContacts.shotSpeed = power;
     state.inMotion = true;
     state.power = 0;
     updateRackVisual(0);
+    setSpin(0, 0);
     loop();
   }
 
@@ -576,6 +624,20 @@
   // between checks.
   const SUBSTEP_DIST = BALL_R*0.5;
 
+  // side spin ("english") bleeds a sideways kick into the cue ball each time
+  // it bounces off a cushion, and fades with each successive rail contact —
+  // tangentAxis is the axis parallel to the rail that was hit ('y' for the
+  // left/right rails, 'x' for the top/bottom rails)
+  function applyRailSpin(b, tangentAxis){
+    if(b.id!=='cue' || !state.shotContacts) return;
+    const remaining = state.shotContacts.railSpinRemaining;
+    if(!remaining) return;
+    const speed = Math.hypot(b.vx,b.vy);
+    const kick = remaining*maxSpinForCue()*speed*SPIN_RAIL_STRENGTH;
+    if(tangentAxis==='y') b.vy += kick; else b.vx += kick;
+    state.shotContacts.railSpinRemaining *= SPIN_RAIL_DECAY;
+  }
+
   function step(){
     let maxSpeed = 0;
     balls.forEach(b=>{
@@ -600,10 +662,10 @@
       // cushions
       balls.forEach(b=>{
         if(b.potted) return;
-        if(b.x - b.r < PLAY.left){ b.x = PLAY.left + b.r; b.vx = -b.vx*0.92; }
-        if(b.x + b.r > PLAY.right){ b.x = PLAY.right - b.r; b.vx = -b.vx*0.92; }
-        if(b.y - b.r < PLAY.top){ b.y = PLAY.top + b.r; b.vy = -b.vy*0.92; }
-        if(b.y + b.r > PLAY.bottom){ b.y = PLAY.bottom - b.r; b.vy = -b.vy*0.92; }
+        if(b.x - b.r < PLAY.left){ b.x = PLAY.left + b.r; b.vx = -b.vx*0.92; applyRailSpin(b,'y'); }
+        if(b.x + b.r > PLAY.right){ b.x = PLAY.right - b.r; b.vx = -b.vx*0.92; applyRailSpin(b,'y'); }
+        if(b.y - b.r < PLAY.top){ b.y = PLAY.top + b.r; b.vy = -b.vy*0.92; applyRailSpin(b,'x'); }
+        if(b.y + b.r > PLAY.bottom){ b.y = PLAY.bottom - b.r; b.vy = -b.vy*0.92; applyRailSpin(b,'x'); }
       });
 
       // ball-ball collisions
@@ -631,6 +693,21 @@
             if(state.shotContacts && !state.shotContacts.firstHitType){
               if(a.id==='cue' && b.type!==CUE) state.shotContacts.firstHitType = b.type;
               else if(b.id==='cue' && a.type!==CUE) state.shotContacts.firstHitType = a.type;
+            }
+            // follow/draw: top or bottom spin doesn't change the cue ball's
+            // path before contact, but pushes it forward (follow) or
+            // backward (draw) along its original heading right as it hits
+            // the first object ball — applied once per shot
+            if(state.shotContacts && !state.shotContacts.spinApplied){
+              const cueBall = a.id==='cue' ? a : (b.id==='cue' ? b : null);
+              const otherBall = cueBall===a ? b : a;
+              if(cueBall && otherBall.type!==CUE){
+                state.shotContacts.spinApplied = true;
+                const followMag = -state.shotContacts.spinY*maxSpinForCue()*state.shotContacts.shotSpeed*SPIN_FOLLOW_STRENGTH;
+                const dir = state.shotContacts.cueDir;
+                cueBall.vx += dir.x*followMag;
+                cueBall.vy += dir.y*followMag;
+              }
             }
           }
         }
@@ -865,11 +942,28 @@
     // shows only in the band outside this rectangle
     const feltPad = 8;
     const feltGrad = ctx.createRadialGradient(W/2,H*0.32,40, W/2,H/2, W*0.62);
-    feltGrad.addColorStop(0, '#8b8862');
-    feltGrad.addColorStop(1, '#4f4d38');
+    feltGrad.addColorStop(0, '#38c47e');
+    feltGrad.addColorStop(0.6, '#1f9d5c');
+    feltGrad.addColorStop(1, '#0c5c34');
     ctx.fillStyle = feltGrad;
     ctx.fillRect(PLAY.left-feltPad, PLAY.top-feltPad,
       (PLAY.right-PLAY.left)+feltPad*2, (PLAY.bottom-PLAY.top)+feltPad*2);
+
+    // subtle centered watermark crest, woven into the cloth
+    ctx.save();
+    ctx.globalAlpha = 0.08;
+    ctx.translate(W/2, H/2);
+    ctx.beginPath();
+    ctx.arc(0, 0, 46, 0, Math.PI*2);
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    ctx.font = '700 40px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+    ctx.fillStyle = '#fff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('8', 0, 2);
+    ctx.restore();
 
     // diamond markers on rails
     ctx.fillStyle = 'rgba(255,240,200,.85)';
@@ -884,14 +978,26 @@
       ctx.beginPath(); ctx.arc(PLAY.right+26, y, 2.6,0,7); ctx.fill();
     }
 
-    // pockets
+    // pockets — smooth metallic trim ring around a dark, gently lit mouth
     pockets.forEach(p=>{
+      const mouthGrad = ctx.createRadialGradient(p.x-6,p.y-6,2, p.x,p.y,POCKET_R);
+      mouthGrad.addColorStop(0, '#3c3c3c');
+      mouthGrad.addColorStop(0.55, '#161616');
+      mouthGrad.addColorStop(1, '#000');
       ctx.beginPath();
       ctx.arc(p.x,p.y,POCKET_R,0,Math.PI*2);
-      ctx.fillStyle = '#000';
+      ctx.fillStyle = mouthGrad;
       ctx.fill();
-      ctx.strokeStyle = 'rgba(233,196,106,.7)';
-      ctx.lineWidth = 3;
+
+      const rimGrad = ctx.createLinearGradient(p.x-POCKET_R,p.y-POCKET_R,p.x+POCKET_R,p.y+POCKET_R);
+      rimGrad.addColorStop(0, '#f2f4f7');
+      rimGrad.addColorStop(0.5, '#9aa0aa');
+      rimGrad.addColorStop(1, '#5a5f68');
+      ctx.strokeStyle = rimGrad;
+      ctx.lineWidth = 3.5;
+      ctx.stroke();
+      ctx.strokeStyle = 'rgba(233,196,106,.55)';
+      ctx.lineWidth = 1.2;
       ctx.stroke();
     });
 
@@ -1137,6 +1243,44 @@
     state.rulerDragging = false;
   });
 
+  // LOWER-RIGHT control: drag the white dot within the spin-ball widget to
+  // set english — where you strike the cue ball off-center.
+  const spinWrapEl = document.getElementById('spinWrap');
+  const spinDotEl = document.getElementById('spinDot');
+  let spinDragging = false;
+
+  function setSpin(x, y){
+    state.spin.x = x; state.spin.y = y;
+    spinDotEl.style.left = (50 + x*38) + '%';
+    spinDotEl.style.top = (50 + y*38) + '%';
+  }
+
+  function setSpinFromEvent(e){
+    const rect = spinWrapEl.getBoundingClientRect();
+    const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
+    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    let dx = (clientX-cx)/(rect.width/2);
+    let dy = (clientY-cy)/(rect.height/2);
+    const mag = Math.hypot(dx,dy);
+    if(mag > 1){ dx /= mag; dy /= mag; }
+    setSpin(dx, dy);
+  }
+
+  spinWrapEl.addEventListener('mousedown', e=>{
+    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    spinDragging = true;
+    setSpinFromEvent(e);
+    e.preventDefault();
+  });
+  window.addEventListener('mousemove', e=>{
+    if(!spinDragging) return;
+    setSpinFromEvent(e);
+  });
+  window.addEventListener('mouseup', ()=>{
+    spinDragging = false;
+  });
+
   document.getElementById('shootBtn').addEventListener('click', ()=>{
     if(state.gameOver || ballsMoving() || state.ballInHand) return;
     if(state.power<=0.02 || state.aimAngle===null) return;
@@ -1203,6 +1347,7 @@
     state.firstBreak = true;
     state.power = 0;
     updateRackVisual(0);
+    setSpin(0, 0);
     document.getElementById('overlay').classList.remove('show');
     setStatus("Player 1's turn — break!");
     setBallInHand(true);
