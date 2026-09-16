@@ -305,10 +305,10 @@
       <div class="player" id="p1box">
         <div class="avatar-wrap">
           <div class="avatar">🧑</div>
-          <div class="flag-badge">🔵</div>
+          <div class="flag-badge">🇧🇷</div>
         </div>
         <div class="player-info">
-          <div class="name" id="p1name">Player 1</div>
+          <div class="name" id="p1name">Chacal243</div>
           <div class="coins" id="p1coins">🪙 1500</div>
           <div class="group" id="p1group">Group: —</div>
           <div class="balls-left" id="p1balls"></div>
@@ -327,10 +327,10 @@
       <div class="player" id="p2box">
         <div class="avatar-wrap">
           <div class="avatar">🧑</div>
-          <div class="flag-badge">🟢</div>
+          <div class="flag-badge">🇺🇸</div>
         </div>
         <div class="player-info">
-          <div class="name" id="p2name">Player 2</div>
+          <div class="name" id="p2name">RivalX</div>
           <div class="coins" id="p2coins">🪙 1500</div>
           <div class="group" id="p2group">Group: —</div>
           <div class="balls-left" id="p2balls"></div>
@@ -1033,6 +1033,43 @@
       ctx.stroke();
       ctx.setLineDash([]);
 
+      // crosshair — marks the first object ball this aim would actually
+      // strike (ghost-ball contact point), found by walking the aim ray
+      // out from the cue ball and testing each candidate ball's distance
+      // from that ray against the two balls' combined radius
+      let target = null, targetDist = Infinity;
+      balls.forEach(ob=>{
+        if(ob.potted || ob.id==='cue') return;
+        const fx = ob.x-cue.x, fy = ob.y-cue.y;
+        const proj = fx*dirX + fy*dirY;
+        if(proj <= 0) return;
+        const closeX = cue.x+dirX*proj, closeY = cue.y+dirY*proj;
+        const offDist = Math.hypot(ob.x-closeX, ob.y-closeY);
+        const combined = ob.r+cue.r;
+        if(offDist < combined){
+          const backOff = Math.sqrt(Math.max(0, combined*combined - offDist*offDist));
+          const t = proj - backOff;
+          if(t > 0 && t < targetDist){
+            targetDist = t;
+            target = {x:cue.x+dirX*t, y:cue.y+dirY*t};
+          }
+        }
+      });
+      if(target){
+        ctx.beginPath();
+        ctx.arc(target.x, target.y, BALL_R+3, 0, Math.PI*2);
+        ctx.strokeStyle = 'rgba(40,240,255,.85)';
+        ctx.lineWidth = 1.5;
+        ctx.stroke();
+        const cs = 7;
+        ctx.beginPath();
+        ctx.moveTo(target.x-cs, target.y); ctx.lineTo(target.x+cs, target.y);
+        ctx.moveTo(target.x, target.y-cs); ctx.lineTo(target.x, target.y+cs);
+        ctx.strokeStyle = 'rgba(255,255,255,.9)';
+        ctx.lineWidth = 1.2;
+        ctx.stroke();
+      }
+
       // cue stick — tip rests against the ball, butt pulls back with power.
       // A real cue tapers (thin tip, thick butt), so it's drawn as a filled
       // quadrilateral along the aim axis rather than a constant-width line.
@@ -1079,6 +1116,13 @@
     // plus a white number circle, matching the reference art
     balls.forEach(b=>{
       if(b.potted) return;
+      // soft drop shadow on the felt — light source is upper-left, so the
+      // shadow falls to the lower-right, grounding the ball on the cloth
+      ctx.beginPath();
+      ctx.ellipse(b.x+3, b.y+4, b.r*0.9, b.r*0.55, 0, 0, Math.PI*2);
+      ctx.fillStyle = 'rgba(0,0,0,.28)';
+      ctx.fill();
+
       ctx.save();
       ctx.beginPath();
       ctx.arc(b.x,b.y,b.r,0,Math.PI*2);
