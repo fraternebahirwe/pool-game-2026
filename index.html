@@ -567,75 +567,99 @@
   }
 
   // ---------- physics ----------
+  // Collisions are resolved in fixed-size substeps rather than once per
+  // animation frame: at max cue power a ball can travel well over its own
+  // diameter in a single frame, which would let it tunnel straight through
+  // another ball (most noticeably on the break) or skip clean over a pocket
+  // mouth without ever being detected inside it. Capping how far any ball
+  // can move per substep guarantees two balls can't fully cross paths
+  // between checks.
+  const SUBSTEP_DIST = BALL_R*0.5;
+
   function step(){
-    // integrate
+    let maxSpeed = 0;
     balls.forEach(b=>{
       if(b.potted) return;
-      const dist = Math.hypot(b.vx, b.vy);
-      b.x += b.vx;
-      b.y += b.vy;
-      // roll: spin proportional to distance traveled this frame (arc length / radius),
-      // so the ball visibly tumbles along its path instead of sliding.
-      if(dist > 0) b.angle += dist / b.r;
+      maxSpeed = Math.max(maxSpeed, Math.hypot(b.vx,b.vy));
+    });
+    const subSteps = Math.max(1, Math.ceil(maxSpeed/SUBSTEP_DIST));
+
+    for(let s=0; s<subSteps; s++){
+      // integrate
+      balls.forEach(b=>{
+        if(b.potted) return;
+        const dist = Math.hypot(b.vx, b.vy)/subSteps;
+        b.x += b.vx/subSteps;
+        b.y += b.vy/subSteps;
+        // roll: spin proportional to distance traveled this substep (arc
+        // length / radius), so the ball visibly tumbles along its path
+        // instead of sliding.
+        if(dist > 0) b.angle += dist / b.r;
+      });
+
+      // cushions
+      balls.forEach(b=>{
+        if(b.potted) return;
+        if(b.x - b.r < PLAY.left){ b.x = PLAY.left + b.r; b.vx = -b.vx*0.92; }
+        if(b.x + b.r > PLAY.right){ b.x = PLAY.right - b.r; b.vx = -b.vx*0.92; }
+        if(b.y - b.r < PLAY.top){ b.y = PLAY.top + b.r; b.vy = -b.vy*0.92; }
+        if(b.y + b.r > PLAY.bottom){ b.y = PLAY.bottom - b.r; b.vy = -b.vy*0.92; }
+      });
+
+      // ball-ball collisions
+      for(let i=0;i<balls.length;i++){
+        const a = balls[i];
+        if(a.potted) continue;
+        for(let j=i+1;j<balls.length;j++){
+          const b = balls[j];
+          if(b.potted) continue;
+          const dx = b.x-a.x, dy = b.y-a.y;
+          const dist = Math.hypot(dx,dy);
+          const minDist = a.r+b.r;
+          if(dist < minDist && dist > 0){
+            const nx = dx/dist, ny = dy/dist;
+            const overlap = (minDist-dist)/2;
+            a.x -= nx*overlap; a.y -= ny*overlap;
+            b.x += nx*overlap; b.y += ny*overlap;
+            const rvx = a.vx-b.vx, rvy = a.vy-b.vy;
+            const rvn = rvx*nx + rvy*ny;
+            if(rvn > 0){
+              a.vx -= rvn*nx; a.vy -= rvn*ny;
+              b.vx += rvn*nx; b.vy += rvn*ny;
+            }
+            // record first contact type for cue ball's shot
+            if(state.shotContacts && !state.shotContacts.firstHitType){
+              if(a.id==='cue' && b.type!==CUE) state.shotContacts.firstHitType = b.type;
+              else if(b.id==='cue' && a.type!==CUE) state.shotContacts.firstHitType = a.type;
+            }
+          }
+        }
+      }
+
+      // pockets
+      balls.forEach(b=>{
+        if(b.potted) return;
+        for(const p of pockets){
+          if(Math.hypot(b.x-p.x, b.y-p.y) < POCKET_R){
+            b.potted = true;
+            b.vx = 0; b.vy = 0;
+            if(state.shotContacts){
+              if(b.id==='cue') state.shotContacts.cueScratched = true;
+              else state.shotContacts.potted.push(b);
+            }
+            break;
+          }
+        }
+      });
+    }
+
+    // friction applied once per full frame, independent of substep count
+    balls.forEach(b=>{
+      if(b.potted) return;
       b.vx *= FRICTION;
       b.vy *= FRICTION;
       if(Math.abs(b.vx) < STOP_SPEED) b.vx = 0;
       if(Math.abs(b.vy) < STOP_SPEED) b.vy = 0;
-    });
-
-    // cushions
-    balls.forEach(b=>{
-      if(b.potted) return;
-      if(b.x - b.r < PLAY.left){ b.x = PLAY.left + b.r; b.vx = -b.vx*0.92; }
-      if(b.x + b.r > PLAY.right){ b.x = PLAY.right - b.r; b.vx = -b.vx*0.92; }
-      if(b.y - b.r < PLAY.top){ b.y = PLAY.top + b.r; b.vy = -b.vy*0.92; }
-      if(b.y + b.r > PLAY.bottom){ b.y = PLAY.bottom - b.r; b.vy = -b.vy*0.92; }
-    });
-
-    // ball-ball collisions
-    for(let i=0;i<balls.length;i++){
-      const a = balls[i];
-      if(a.potted) continue;
-      for(let j=i+1;j<balls.length;j++){
-        const b = balls[j];
-        if(b.potted) continue;
-        const dx = b.x-a.x, dy = b.y-a.y;
-        const dist = Math.hypot(dx,dy);
-        const minDist = a.r+b.r;
-        if(dist < minDist && dist > 0){
-          const nx = dx/dist, ny = dy/dist;
-          const overlap = (minDist-dist)/2;
-          a.x -= nx*overlap; a.y -= ny*overlap;
-          b.x += nx*overlap; b.y += ny*overlap;
-          const rvx = a.vx-b.vx, rvy = a.vy-b.vy;
-          const rvn = rvx*nx + rvy*ny;
-          if(rvn > 0){
-            a.vx -= rvn*nx; a.vy -= rvn*ny;
-            b.vx += rvn*nx; b.vy += rvn*ny;
-          }
-          // record first contact type for cue ball's shot
-          if(state.shotContacts && !state.shotContacts.firstHitType){
-            if(a.id==='cue' && b.type!==CUE) state.shotContacts.firstHitType = b.type;
-            else if(b.id==='cue' && a.type!==CUE) state.shotContacts.firstHitType = a.type;
-          }
-        }
-      }
-    }
-
-    // pockets
-    balls.forEach(b=>{
-      if(b.potted) return;
-      for(const p of pockets){
-        if(Math.hypot(b.x-p.x, b.y-p.y) < POCKET_R){
-          b.potted = true;
-          b.vx = 0; b.vy = 0;
-          if(state.shotContacts){
-            if(b.id==='cue') state.shotContacts.cueScratched = true;
-            else state.shotContacts.potted.push(b);
-          }
-          break;
-        }
-      }
     });
   }
 
