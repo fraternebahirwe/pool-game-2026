@@ -55,13 +55,17 @@
   #settingsIcon{ right:14px; }
   .hud{
     display:flex;justify-content:space-between;align-items:center;
-    background:linear-gradient(180deg,var(--bg-panel),#0f0726);
+    background:linear-gradient(120deg,#241154 0%,#1a1748 45%,#0d2a63 100%);
     border:1px solid var(--panel-border);
     border-radius:14px;
     padding:10px 18px;
     margin-bottom:10px;
-    box-shadow:0 0 18px rgba(255,47,208,.15) inset;
+    box-shadow:0 0 18px rgba(255,47,208,.15) inset, 0 4px 18px rgba(0,0,0,.4);
     gap:12px;flex-wrap:wrap;
+  }
+  .rating{
+    font-size:10.5px; font-weight:700; color:var(--neon-cyan); opacity:.85;
+    background:rgba(40,240,255,.1); border-radius:8px; padding:0 6px; display:inline-block; width:fit-content;
   }
   .player{
     display:flex;align-items:center;gap:10px;min-width:190px;
@@ -98,12 +102,12 @@
   #p2score{ background:linear-gradient(180deg,#e0362c,#a31e17); box-shadow:0 0 10px rgba(224,54,44,.6) inset; }
   .pot-badge{
     display:flex;align-items:center;gap:6px;justify-content:center;
-    font-size:13px;font-weight:700;color:#fff;
-    background:linear-gradient(180deg,#3a2a7a,#1f1450);
-    padding:6px 14px;
-    box-shadow:0 0 12px rgba(233,196,106,.45) inset;
+    font-size:13px;font-weight:800;color:#fff;
+    background:linear-gradient(180deg,#ff3d81,#a3134f);
+    padding:6px 14px; border-radius:20px;
+    box-shadow:0 0 14px rgba(255,61,129,.65), 0 0 12px rgba(255,61,129,.35) inset;
   }
-  .pot-badge .dice{ filter:drop-shadow(0 0 4px rgba(233,196,106,.8)); }
+  .pot-badge .dice{ filter:drop-shadow(0 0 4px rgba(255,220,120,.9)); }
   .pot-badge .dice{font-size:15px;}
   .balls-left{display:flex;gap:4px;flex-wrap:wrap;max-width:170px;}
   #p2box .balls-left{ justify-content:flex-end; }
@@ -187,8 +191,8 @@
     width:0;height:0;
     border-top:6px solid transparent;
     border-bottom:6px solid transparent;
-    border-right:9px solid var(--gold);
-    filter:drop-shadow(0 0 3px rgba(0,0,0,.6));
+    border-right:9px solid #ffd43b;
+    filter:drop-shadow(0 0 4px rgba(255,212,59,.7));
   }
   .shoot-btn{
     position:absolute; right:-44px; bottom:20px;
@@ -309,6 +313,7 @@
         </div>
         <div class="player-info">
           <div class="name" id="p1name">Chacal243</div>
+          <div class="rating">1598</div>
           <div class="coins" id="p1coins">🪙 1500</div>
           <div class="group" id="p1group">Group: —</div>
           <div class="balls-left" id="p1balls"></div>
@@ -330,7 +335,8 @@
           <div class="flag-badge">🇺🇸</div>
         </div>
         <div class="player-info">
-          <div class="name" id="p2name">RivalX</div>
+          <div class="name" id="p2name">PoolHag</div>
+          <div class="rating">1662</div>
           <div class="coins" id="p2coins">🪙 1500</div>
           <div class="group" id="p2group">Group: —</div>
           <div class="balls-left" id="p2balls"></div>
@@ -949,7 +955,8 @@
     ctx.fillRect(PLAY.left-feltPad, PLAY.top-feltPad,
       (PLAY.right-PLAY.left)+feltPad*2, (PLAY.bottom-PLAY.top)+feltPad*2);
 
-    // subtle centered watermark crest, woven into the cloth
+    // subtle centered watermark crest — a simple castle-tower silhouette
+    // woven translucently into the cloth
     ctx.save();
     ctx.globalAlpha = 0.08;
     ctx.translate(W/2, H/2);
@@ -958,11 +965,17 @@
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.stroke();
-    ctx.font = '700 40px -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif';
+
     ctx.fillStyle = '#fff';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillText('8', 0, 2);
+    ctx.fillRect(-20, -2, 40, 32); // tower body
+    const crenW = 6, crenGap = 2.6, crenH = 8;
+    for(let i=-2; i<=2; i++){
+      ctx.fillRect(i*(crenW+crenGap)-crenW/2, -2-crenH, crenW, crenH);
+    }
+    ctx.fillRect(-1, -20, 2, 10); // flag pole
+    ctx.beginPath();
+    ctx.moveTo(1,-20); ctx.lineTo(12,-17); ctx.lineTo(1,-14); ctx.closePath();
+    ctx.fill(); // pennant
     ctx.restore();
 
     // diamond markers on rails
@@ -1001,6 +1014,19 @@
       ctx.stroke();
     });
 
+    // subtle red "hit area" target rings around the four corner pockets
+    // (indices 0,2,3,5 — the two side pockets at index 1 and 4 are excluded)
+    [0,2,3,5].forEach(i=>{
+      const p = pockets[i];
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, POCKET_R+9, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(224,54,44,.35)';
+      ctx.lineWidth = 1.5;
+      ctx.setLineDash([3,4]);
+      ctx.stroke();
+      ctx.setLineDash([]);
+    });
+
     // aim line — direction comes only from the ruler (dragging the table no
     // longer changes it); the cue visually pulls back with state.power,
     // which is set by pulling the rack cue.
@@ -1032,6 +1058,20 @@
       ctx.setLineDash([6,6]);
       ctx.stroke();
       ctx.setLineDash([]);
+
+      // crosshair on the cue ball itself, marking the shot's origin point
+      ctx.beginPath();
+      ctx.arc(cue.x, cue.y, cue.r+5, 0, Math.PI*2);
+      ctx.strokeStyle = 'rgba(255,255,255,.6)';
+      ctx.lineWidth = 1.2;
+      ctx.stroke();
+      const ccs = 5;
+      ctx.beginPath();
+      ctx.moveTo(cue.x-ccs, cue.y); ctx.lineTo(cue.x+ccs, cue.y);
+      ctx.moveTo(cue.x, cue.y-ccs); ctx.lineTo(cue.x, cue.y+ccs);
+      ctx.strokeStyle = 'rgba(255,255,255,.75)';
+      ctx.lineWidth = 1;
+      ctx.stroke();
 
       // crosshair — marks the first object ball this aim would actually
       // strike (ghost-ball contact point), found by walking the aim ray
