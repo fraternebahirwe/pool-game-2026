@@ -12,9 +12,9 @@
     --neon-magenta:#ff2fd0;
     --gold:#e9c46a;
     --text:#e8e6ff;
-    --felt:#1f9d5c;
-    --felt-dark:#0c5c34;
-    --felt-light:#38c47e;
+    --felt:#8a9094;
+    --felt-dark:#5c6266;
+    --felt-light:#a4aaae;
     --rail:#c9a869;
     --rail-edge:#7a5a2e;
     --rail-light:#ecdcae;
@@ -22,11 +22,11 @@
   *{box-sizing:border-box;}
   html,body{
     margin:0;padding:0;height:100%;
-    background-color:#0f2038;
+    background-color:#0b1329;
     background-image:
       linear-gradient(135deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%),
       linear-gradient(45deg, rgba(255,255,255,.05) 25%, transparent 25%, transparent 75%, rgba(255,255,255,.05) 75%),
-      radial-gradient(circle at 50% 0%, #1a3a5c, #0f2038 70%);
+      radial-gradient(circle at 50% 0%, #16274d, #0b1329 70%);
     background-size:46px 46px, 46px 46px, 100% 100%;
     background-position:0 0, 23px 23px, 0 0;
     color:var(--text);
@@ -55,9 +55,9 @@
   #settingsIcon{ right:14px; }
   .hud{
     display:flex;justify-content:space-between;align-items:center;
-    background:linear-gradient(120deg,#241154 0%,#1a1748 45%,#0d2a63 100%);
+    background:linear-gradient(to right, #1d1248, #2a1b6d);
     border:1px solid var(--panel-border);
-    border-radius:14px;
+    border-radius:0 0 20px 20px;
     padding:10px 18px;
     margin-bottom:10px;
     box-shadow:0 0 18px rgba(255,47,208,.15) inset, 0 4px 18px rgba(0,0,0,.4);
@@ -230,8 +230,8 @@
   }
   .spin-dot{
     position:absolute; width:10px;height:10px;border-radius:50%;
-    background:var(--neon-cyan);
-    box-shadow:0 0 6px rgba(40,240,255,.85);
+    background:#e0362c;
+    box-shadow:0 0 6px rgba(224,54,44,.85);
     left:50%; top:50%; transform:translate(-50%,-50%);
     pointer-events:none;
   }
@@ -309,11 +309,11 @@
       <div class="player" id="p1box">
         <div class="avatar-wrap">
           <div class="avatar">🧑</div>
-          <div class="flag-badge">🇧🇷</div>
+          <div class="flag-badge">🇺🇦</div>
         </div>
         <div class="player-info">
           <div class="name" id="p1name">Chacal243</div>
-          <div class="rating">1598</div>
+          <div class="rating">1578</div>
           <div class="coins" id="p1coins">🪙 1500</div>
           <div class="group" id="p1group">Group: —</div>
           <div class="balls-left" id="p1balls"></div>
@@ -332,11 +332,11 @@
       <div class="player" id="p2box">
         <div class="avatar-wrap">
           <div class="avatar">🧑</div>
-          <div class="flag-badge">🇺🇸</div>
+          <div class="flag-badge">🇹🇷</div>
         </div>
         <div class="player-info">
-          <div class="name" id="p2name">PoolHag</div>
-          <div class="rating">1662</div>
+          <div class="name" id="p2name">Naci</div>
+          <div class="rating">1769</div>
           <div class="coins" id="p2coins">🪙 1500</div>
           <div class="group" id="p2group">Group: —</div>
           <div class="balls-left" id="p2balls"></div>
@@ -948,34 +948,44 @@
     // shows only in the band outside this rectangle
     const feltPad = 8;
     const feltGrad = ctx.createRadialGradient(W/2,H*0.32,40, W/2,H/2, W*0.62);
-    feltGrad.addColorStop(0, '#38c47e');
-    feltGrad.addColorStop(0.6, '#1f9d5c');
-    feltGrad.addColorStop(1, '#0c5c34');
+    feltGrad.addColorStop(0, '#a4aaae');
+    feltGrad.addColorStop(0.6, '#8a9094');
+    feltGrad.addColorStop(1, '#5c6266');
     ctx.fillStyle = feltGrad;
     ctx.fillRect(PLAY.left-feltPad, PLAY.top-feltPad,
       (PLAY.right-PLAY.left)+feltPad*2, (PLAY.bottom-PLAY.top)+feltPad*2);
 
-    // subtle centered watermark crest — a simple castle-tower silhouette
+    // dark grey border framing the cloth, distinct from the wood rail outside it
+    ctx.strokeStyle = 'rgba(40,44,48,.9)';
+    ctx.lineWidth = 3;
+    ctx.strokeRect(PLAY.left-feltPad, PLAY.top-feltPad,
+      (PLAY.right-PLAY.left)+feltPad*2, (PLAY.bottom-PLAY.top)+feltPad*2);
+
+    // subtle centered watermark — a city skyline with a cathedral silhouette,
     // woven translucently into the cloth
     ctx.save();
     ctx.globalAlpha = 0.08;
     ctx.translate(W/2, H/2);
     ctx.beginPath();
-    ctx.arc(0, 0, 46, 0, Math.PI*2);
+    ctx.arc(0, 0, 52, 0, Math.PI*2);
     ctx.strokeStyle = '#fff';
     ctx.lineWidth = 2;
     ctx.stroke();
 
     ctx.fillStyle = '#fff';
-    ctx.fillRect(-20, -2, 40, 32); // tower body
-    const crenW = 6, crenGap = 2.6, crenH = 8;
-    for(let i=-2; i<=2; i++){
-      ctx.fillRect(i*(crenW+crenGap)-crenW/2, -2-crenH, crenW, crenH);
-    }
-    ctx.fillRect(-1, -20, 2, 10); // flag pole
+    const groundY = 20;
+    [ {x:-46,w:14,h:20}, {x:-30,w:11,h:30}, {x:-17,w:12,h:16},
+      {x:5,w:12,h:16}, {x:17,w:11,h:27}, {x:30,w:14,h:19} ]
+      .forEach(b=> ctx.fillRect(b.x, groundY-b.h, b.w, b.h));
+
+    // cathedral body, pointed roof/spire, and a small rose window
+    ctx.fillRect(-10, -6, 20, groundY+6);
     ctx.beginPath();
-    ctx.moveTo(1,-20); ctx.lineTo(12,-17); ctx.lineTo(1,-14); ctx.closePath();
-    ctx.fill(); // pennant
+    ctx.moveTo(-10,-6); ctx.lineTo(0,-25); ctx.lineTo(10,-6); ctx.closePath();
+    ctx.fill();
+    ctx.beginPath();
+    ctx.arc(0, 3, 4, 0, Math.PI*2);
+    ctx.fill();
     ctx.restore();
 
     // diamond markers on rails
