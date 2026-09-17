@@ -264,10 +264,15 @@
     width:100%; flex-wrap:wrap;
   }
   .cue-rack{
+    /* positioned outside table-shell's own border (same technique as the
+       power slider / shoot button / spin widget on the right), so it never
+       consumes layout width in .table-row — that's what keeps the canvas
+       itself centered in the viewport regardless of the rack's presence */
+    position:absolute; left:-102px; top:0; bottom:0; width:88px;
     display:flex; flex-direction:column; align-items:center; gap:8px;
     background:linear-gradient(180deg,var(--bg-panel),#0f0726);
     border:1px solid var(--panel-border); border-radius:14px;
-    padding:12px 10px; width:88px; flex-shrink:0;
+    padding:12px 10px;
     box-shadow:0 0 18px rgba(0,0,0,.35), 0 0 16px rgba(40,240,255,.25);
   }
   .rack-title{ font-size:10.5px; letter-spacing:1px; opacity:.7; font-weight:700; }
@@ -312,26 +317,40 @@
     position:absolute;
     right:-34px;top:40px;bottom:60px;
     width:26px;
+    /* the true force gradient lives on the track itself (green = low,
+       red = full power); #powerFill is a dark mask on top of it that
+       shrinks from the top as power increases, revealing color only up to
+       the current level — so the bar always reads "how much", not just
+       "which color the whole thing happens to be right now" */
     background-image:
       repeating-linear-gradient(180deg, rgba(255,255,255,.35) 0 1px, transparent 1px 7px),
-      linear-gradient(180deg,#3a3a3a,#111);
+      linear-gradient(0deg, #2ecc71 0%, #f1c40f 55%, #e74c3c 100%);
     border-radius:8px;
     border:2px solid #d8d8d8;
     box-shadow:0 0 10px rgba(0,0,0,.5);
     cursor:ns-resize;
   }
   #powerFill{
-    position:absolute;bottom:0;left:0;right:0;height:0%;
-    background:linear-gradient(0deg,var(--neon-cyan),var(--neon-magenta));
-    border-radius:0 0 7px 7px;
+    position:absolute;top:0;left:0;right:0;height:100%;
+    background:#0d0a1c;
+    border-radius:7px 7px 0 0;
   }
   .power-arrow{
-    position:absolute; left:-9px; bottom:0%;
-    width:0;height:0;
-    border-top:6px solid transparent;
-    border-bottom:6px solid transparent;
-    border-right:9px solid #ffd43b;
-    filter:drop-shadow(0 0 4px rgba(255,212,59,.7));
+    position:absolute; left:50%; bottom:0%;
+    width:34px; height:14px;
+    transform:translate(-50%, 50%);
+    background:linear-gradient(180deg,#ffffff,#c7cbd3 55%,#9aa0aa);
+    border:2px solid rgba(0,0,0,.4);
+    border-radius:7px;
+    box-shadow:0 2px 6px rgba(0,0,0,.6), 0 0 8px rgba(255,255,255,.35);
+    pointer-events:none;
+  }
+  .power-arrow::before{
+    content:'';
+    position:absolute; left:50%; top:50%; width:16px; height:2px;
+    background:rgba(0,0,0,.4);
+    transform:translate(-50%,-50%);
+    box-shadow:0 -4px 0 rgba(0,0,0,.4), 0 4px 0 rgba(0,0,0,.4);
   }
   .shoot-btn{
     position:absolute; right:-44px; bottom:20px;
@@ -388,7 +407,7 @@
     margin:0;
   }
   @media (max-width:640px){
-    .cue-rack{ width:64px; padding:8px 6px; }
+    .cue-rack{ width:64px; left:-78px; padding:8px 6px; }
     .mode-grid{ grid-template-columns:1fr; }
     .table-shell{ width:90vw; }
   }
@@ -509,23 +528,23 @@
       </div>
 
       <div class="table-row">
-        <div class="cue-rack" id="cueRack">
-          <div class="rack-title">CUE</div>
-          <div class="rack-cue-preview" id="rackCuePreview">
-            <div class="rack-cue-bar" id="rackCueBar"></div>
-            <div class="rack-cue-ring" id="rackRing1"></div>
-            <div class="rack-cue-ring" id="rackRing2"></div>
-          </div>
-          <div class="rack-cue-name" id="rackCueName">Emerald Gold</div>
-          <div class="rack-stats" id="rackStats">
-            <div class="rack-stat-row"><span class="label">P</span><div class="rack-stat-bar"><div class="fill" id="rackPowerFill"></div></div></div>
-            <div class="rack-stat-row"><span class="label">A</span><div class="rack-stat-bar"><div class="fill" id="rackAimFill"></div></div></div>
-            <div class="rack-stat-row"><span class="label">S</span><div class="rack-stat-bar"><div class="fill" id="rackSpinFill"></div></div></div>
-          </div>
-          <div class="rack-thumbs" id="rackThumbs"></div>
-        </div>
-
         <div class="table-shell">
+          <div class="cue-rack" id="cueRack">
+            <div class="rack-title">CUE</div>
+            <div class="rack-cue-preview" id="rackCuePreview">
+              <div class="rack-cue-bar" id="rackCueBar"></div>
+              <div class="rack-cue-ring" id="rackRing1"></div>
+              <div class="rack-cue-ring" id="rackRing2"></div>
+            </div>
+            <div class="rack-cue-name" id="rackCueName">Emerald Gold</div>
+            <div class="rack-stats" id="rackStats">
+              <div class="rack-stat-row"><span class="label">P</span><div class="rack-stat-bar"><div class="fill" id="rackPowerFill"></div></div></div>
+              <div class="rack-stat-row"><span class="label">A</span><div class="rack-stat-bar"><div class="fill" id="rackAimFill"></div></div></div>
+              <div class="rack-stat-row"><span class="label">S</span><div class="rack-stat-bar"><div class="fill" id="rackSpinFill"></div></div></div>
+            </div>
+            <div class="rack-thumbs" id="rackThumbs"></div>
+          </div>
+
           <canvas id="table" width="1000" height="520"></canvas>
           <div class="power-wrap" id="powerWrap">
             <div id="powerFill"></div>
@@ -930,12 +949,14 @@
       `rotate(-18deg) translateY(${frac*26}px)`;
   }
 
-  // RIGHT (power): moves the slider's fill+arrow to match the current pull
+  // RIGHT (power): moves the slider's mask+thumb to match the current pull
   // strength, in lockstep with whatever last set state.power (the slider
-  // itself, or pulling the rack cue back)
+  // itself, or pulling the rack cue back). The mask shrinks from the top as
+  // power rises, uncovering the green-to-red track beneath it; the thumb
+  // sits right on that boundary, centered on it via its own CSS transform.
   function updateRulerVisual(frac){
-    document.getElementById('powerFill').style.height = (frac*100)+'%';
-    document.getElementById('powerArrow').style.bottom = `calc(${frac*100}% - 6px)`;
+    document.getElementById('powerFill').style.height = ((1-frac)*100)+'%';
+    document.getElementById('powerArrow').style.bottom = (frac*100)+'%';
   }
 
   // ---------- physics ----------
@@ -1391,6 +1412,18 @@
         return dist;
       }
 
+      // same as railDist, but also reports which axis's rail was the
+      // limiting one — needed to mirror a direction off that cushion for the
+      // bounce-prediction line
+      function railHit(px,py,dx,dy){
+        let dist = Infinity, axis = null;
+        if(dx>0){ const d=(PLAY.right-px)/dx; if(d<dist){ dist=d; axis='x'; } }
+        if(dx<0){ const d=(PLAY.left-px)/dx; if(d<dist){ dist=d; axis='x'; } }
+        if(dy>0){ const d=(PLAY.bottom-py)/dy; if(d<dist){ dist=d; axis='y'; } }
+        if(dy<0){ const d=(PLAY.top-py)/dy; if(d<dist){ dist=d; axis='y'; } }
+        return {dist, axis};
+      }
+
       const mainLen = railDist(cue.x,cue.y,dirX,dirY);
       ctx.beginPath();
       ctx.moveTo(cue.x, cue.y);
@@ -1486,6 +1519,26 @@
           ctx.stroke();
         }
         ctx.setLineDash([]);
+      } else {
+        // aim doesn't reach any ball before a cushion — preview the bank:
+        // mirror the direction across whichever rail is hit first and draw a
+        // second dashed segment continuing from there, so a rail-bank shot
+        // can be lined up the same way a direct hit can.
+        const hit = railHit(cue.x, cue.y, dirX, dirY);
+        if(isFinite(hit.dist)){
+          const bx = cue.x+dirX*hit.dist, by = cue.y+dirY*hit.dist;
+          const bounceDirX = hit.axis==='x' ? -dirX : dirX;
+          const bounceDirY = hit.axis==='y' ? -dirY : dirY;
+          const bounceLen = railDist(bx, by, bounceDirX, bounceDirY);
+          ctx.beginPath();
+          ctx.moveTo(bx, by);
+          ctx.lineTo(bx+bounceDirX*bounceLen, by+bounceDirY*bounceLen);
+          ctx.strokeStyle = 'rgba(255,255,255,.35)';
+          ctx.lineWidth = 1.3;
+          ctx.setLineDash([4,5]);
+          ctx.stroke();
+          ctx.setLineDash([]);
+        }
       }
 
       // cue stick — tip rests against the ball, butt pulls back with power.
@@ -1504,6 +1557,15 @@
 
       const nx = -dirY, ny = dirX; // perpendicular to the cue's axis
       const tipHalf = 2, buttHalf = 7.5;
+
+      // clip the stick itself to the felt (the playing surface, inside the
+      // wood rail) so a long pull-back at high power tucks behind the rail
+      // cushion instead of reading as if it pokes off the edge of the canvas
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(PLAY.left, PLAY.top, PLAY.right-PLAY.left, PLAY.bottom-PLAY.top);
+      ctx.clip();
+
       ctx.beginPath();
       ctx.moveTo(tipX+nx*tipHalf, tipY+ny*tipHalf);
       ctx.lineTo(buttX+nx*buttHalf, buttY+ny*buttHalf);
@@ -1527,6 +1589,7 @@
         ctx.stroke();
       });
 
+      ctx.restore();
     }
     updateRackVisual(state.power);
 
