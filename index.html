@@ -541,7 +541,7 @@
         </div>
       </div>
 
-      <div class="footer-msg" id="aimHint">Drag the ruler on the right to aim, drag the white dot in the lower-right for spin, then pull the cue back in the rack on the left and release to shoot (or press the shoot button).</div>
+      <div class="footer-msg" id="aimHint">Drag anywhere on the table to aim, drag the white dot in the lower-right for spin, then pull back on the power slider on the right (or the cue in the rack) and release to shoot (or press the shoot button).</div>
       <div id="ballInHandBar" style="display:none;text-align:center;margin-top:8px;">
         <span style="color:var(--neon-cyan);font-size:13px;font-weight:600;">Ball in hand — drag the white ball anywhere on the table, then confirm.</span>
         <button id="confirmPlaceBtn" style="margin-left:10px;background:linear-gradient(180deg,var(--neon-cyan),#1382a8);border:none;color:#04222b;padding:6px 16px;border-radius:8px;font-size:12px;font-weight:800;cursor:pointer;">CONFIRM ▶</button>
@@ -869,8 +869,9 @@
     state.shotContacts = {firstHitType:null, potted:[], cueScratched:false};
   }
 
-  // shared by both ways to fire: releasing the rack-cue pull, or pressing
-  // the shoot button — always uses the aim angle set by the ruler
+  // shared by every way to fire: releasing the power slider, releasing the
+  // rack-cue pull, or pressing the shoot button — always uses the aim angle
+  // set by dragging the table
   function fireShot(angle, powerFrac){
     const cue = balls.find(b=>b.id==='cue');
     const power = powerFrac*maxPowerForCue();
@@ -888,6 +889,7 @@
     state.inMotion = true;
     state.power = 0;
     updateRackVisual(0);
+    updateRulerVisual(0);
     setSpin(0, 0);
     loop();
   }
@@ -898,15 +900,12 @@
       `rotate(-18deg) translateY(${frac*26}px)`;
   }
 
-  // RIGHT (aim direction): moves the ruler's fill+arrow to match wherever
-  // it was last dragged to
+  // RIGHT (power): moves the slider's fill+arrow to match the current pull
+  // strength, in lockstep with whatever last set state.power (the slider
+  // itself, or pulling the rack cue back)
   function updateRulerVisual(frac){
     document.getElementById('powerFill').style.height = (frac*100)+'%';
     document.getElementById('powerArrow').style.bottom = `calc(${frac*100}% - 6px)`;
-  }
-
-  function aimAngleToRulerFrac(angle){
-    return (angle+Math.PI)/(Math.PI*2);
   }
 
   // ---------- physics ----------
@@ -1339,9 +1338,10 @@
       ctx.setLineDash([]);
     });
 
-    // aim line — direction comes only from the ruler (dragging the table no
-    // longer changes it); the cue visually pulls back with state.power,
-    // which is set by pulling the rack cue.
+    // aim line — direction comes from dragging anywhere on the table, which
+    // rotates the cue stick around the cue ball; the stick visually pulls
+    // back with state.power, set by the power slider or by pulling the rack
+    // cue directly.
     const canShowCue = !ballsMoving() && !state.gameOver && !state.ballInHand && state.aimAngle!==null;
     if(canShowCue){
       const cue = balls.find(b=>b.id==='cue');
@@ -1569,22 +1569,40 @@
     return { x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY };
   }
 
-  // the table itself no longer sets aim — it's only used to place the cue
-  // ball during ball-in-hand
-  canvas.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving() || !state.ballInHand) return;
-    state.placingBall = true;
-    placeCueBallAt(canvasPoint(e));
+  // the table itself is dual-purpose: during ball-in-hand it places the cue
+  // ball; otherwise, dragging anywhere on it rotates the cue stick around
+  // the cue ball to set the aim trajectory line. Both are locked out while
+  // any ball is moving or the game has ended.
+  let aimDragging = false;
+  function updateAimFromPoint(pt){
+    const cue = balls.find(b=>b.id==='cue');
+    state.aimAngle = Math.atan2(pt.y-cue.y, pt.x-cue.x);
     drawTable();
+  }
+  canvas.addEventListener('mousedown', e=>{
+    if(state.gameOver || ballsMoving()) return;
+    const pt = canvasPoint(e);
+    if(state.ballInHand){
+      state.placingBall = true;
+      placeCueBallAt(pt);
+      drawTable();
+      return;
+    }
+    aimDragging = true;
+    updateAimFromPoint(pt);
+    e.preventDefault();
   });
   window.addEventListener('mousemove', e=>{
     if(state.placingBall){
       placeCueBallAt(canvasPoint(e));
       drawTable();
+    } else if(aimDragging){
+      updateAimFromPoint(canvasPoint(e));
     }
   });
   window.addEventListener('mouseup', ()=>{
     state.placingBall = false;
+    aimDragging = false;
   });
 
   // LEFT control: drag the rack cue itself downward to pull it back and set
@@ -1615,28 +1633,39 @@
     }
   });
 
-  // RIGHT control: drag the ruler to set the aim direction — this is the
-  // only thing that changes where the shot points.
+  // RIGHT control: the power gauge. Dragging it up/down sets shot strength
+  // (0..1) smoothly; releasing transfers that power, at the current aim
+  // angle, straight to the cue ball as an impulse — the same release-to-shoot
+  // path the rack cue's pull-back uses.
   const powerWrapEl = document.getElementById('powerWrap');
-  function setAimFromRulerEvent(e){
+  function setPowerFromSliderEvent(e){
     const rect = powerWrapEl.getBoundingClientRect();
     const frac = Math.max(0, Math.min(1, 1 - (e.clientY-rect.top)/rect.height));
-    state.aimAngle = frac*Math.PI*2 - Math.PI; // full-circle sweep, -180°..180°
+    state.power = frac;
     updateRulerVisual(frac);
+    updateRackVisual(frac);
     drawTable();
   }
   powerWrapEl.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    if(state.gameOver || ballsMoving() || state.ballInHand || state.aimAngle===null) return;
     state.rulerDragging = true;
-    setAimFromRulerEvent(e);
+    setPowerFromSliderEvent(e);
     e.preventDefault();
   });
   window.addEventListener('mousemove', e=>{
     if(!state.rulerDragging) return;
-    setAimFromRulerEvent(e);
+    setPowerFromSliderEvent(e);
   });
   window.addEventListener('mouseup', ()=>{
+    if(!state.rulerDragging) return;
     state.rulerDragging = false;
+    if(state.power > 0.04){
+      fireShot(state.aimAngle, state.power);
+    } else {
+      state.power = 0;
+      updateRulerVisual(0);
+      updateRackVisual(0);
+    }
   });
 
   // LOWER-RIGHT control: drag the white dot within the spin-ball widget to
@@ -1689,7 +1718,7 @@
   function updateEquippedCueMsg(){
     const c = currentCue();
     document.getElementById('aimHint').textContent =
-      'Equipped: '+c.name+' — drag the ruler to aim, drag the spin dot for english, pull the rack cue back and release to shoot.';
+      'Equipped: '+c.name+' — drag anywhere on the table to aim, drag the spin dot for english, then pull back on the power slider (or the rack cue) and release to shoot.';
   }
 
   function placeCueBallAt(pt){
@@ -1717,7 +1746,6 @@
   document.getElementById('confirmPlaceBtn').addEventListener('click', ()=>{
     setBallInHand(false);
     state.aimAngle = defaultAimAngle();
-    updateRulerVisual(aimAngleToRulerFrac(state.aimAngle));
     drawTable();
   });
 
@@ -1760,10 +1788,15 @@
     const angle = pickBotAimAngle();
     if(angle===null) return;
     state.aimAngle = angle;
-    updateRulerVisual(aimAngleToRulerFrac(angle));
     drawTable();
     const power = 0.45 + Math.random()*0.35;
-    setTimeout(()=> fireShot(angle, power), 600);
+    setTimeout(()=>{
+      state.power = power;
+      updateRulerVisual(power);
+      updateRackVisual(power);
+      drawTable();
+      setTimeout(()=> fireShot(angle, power), 350);
+    }, 600);
   }
 
   function restartGame(){
