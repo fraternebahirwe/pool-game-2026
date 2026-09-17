@@ -795,7 +795,8 @@
     wager:150,
     vsBot:false,
     botPlayer:2,
-    power:0, // 0..1, set via the rack cue pull or the ruler, fired by the shoot button
+    power:0, // 0..1, set via the rack cue pull or the power slider, fired by the shoot button
+    striking:false, // true from the moment a shot is committed until the impulse lands — locks input even before the cue ball's speed clears STOP_SPEED
     rackDragging:false,
     rackDragStartY:0,
     rackStartPower:0,
@@ -850,7 +851,7 @@
       t.className = 'rack-thumb' + (cue.id===selectedCueId ? ' selected':'');
       t.style.background = cueStickGradientCSS(cue,90);
       t.title = cue.name;
-      t.addEventListener('click', ()=>{ if(!ballsMoving()) setSelectedCue(cue.id); });
+      t.addEventListener('click', ()=>{ if(!controlsLocked()) setSelectedCue(cue.id); });
       thumbs.appendChild(t);
     });
   }
@@ -865,14 +866,42 @@
     return balls.some(b=>!b.potted && (Math.abs(b.vx)>STOP_SPEED || Math.abs(b.vy)>STOP_SPEED));
   }
 
+  // every aiming/power/spin control checks this before accepting input: it
+  // covers not just "balls currently rolling" but the strike animation
+  // itself, so input locks the instant a shot is committed rather than
+  // waiting for the cue ball's speed to clear STOP_SPEED next frame
+  function controlsLocked(){
+    return state.gameOver || state.striking || ballsMoving();
+  }
+
   function resetShotTracking(){
     state.shotContacts = {firstHitType:null, potted:[], cueScratched:false};
   }
 
   // shared by every way to fire: releasing the power slider, releasing the
   // rack-cue pull, or pressing the shoot button — always uses the aim angle
-  // set by dragging the table
+  // set by dragging the table. Locks input immediately, plays a quick
+  // forward strike animation (the stick rushes from its pulled-back position
+  // to the ball), then hands off to applyShotImpulse once the tip "lands".
   function fireShot(angle, powerFrac){
+    if(state.striking) return;
+    state.striking = true;
+    const startPower = powerFrac;
+    const duration = 110; // ms — fast enough to read as a strike, not a slider animation
+    const startTime = performance.now();
+    (function animate(now){
+      const t = Math.min(1, (now-startTime)/duration);
+      const eased = 1 - Math.pow(1-t, 2); // ease-out: quick, decelerating toward contact
+      state.power = startPower * (1-eased);
+      updateRackVisual(state.power);
+      updateRulerVisual(state.power);
+      drawTable();
+      if(t < 1) requestAnimationFrame(animate);
+      else applyShotImpulse(angle, startPower);
+    })(startTime);
+  }
+
+  function applyShotImpulse(angle, powerFrac){
     const cue = balls.find(b=>b.id==='cue');
     const power = powerFrac*maxPowerForCue();
     cue.vx = Math.cos(angle)*power;
@@ -887,6 +916,7 @@
     state.shotContacts.railSpinRemaining = state.spin.x;
     state.shotContacts.shotSpeed = power;
     state.inMotion = true;
+    state.striking = false;
     state.power = 0;
     updateRackVisual(0);
     updateRulerVisual(0);
@@ -1389,7 +1419,7 @@
       // strike (ghost-ball contact point), found by walking the aim ray
       // out from the cue ball and testing each candidate ball's distance
       // from that ray against the two balls' combined radius
-      let target = null, targetDist = Infinity;
+      let target = null, targetDist = Infinity, hitBall = null;
       balls.forEach(ob=>{
         if(ob.potted || ob.id==='cue') return;
         const fx = ob.x-cue.x, fy = ob.y-cue.y;
@@ -1404,6 +1434,7 @@
           if(t > 0 && t < targetDist){
             targetDist = t;
             target = {x:cue.x+dirX*t, y:cue.y+dirY*t};
+            hitBall = ob;
           }
         }
       });
@@ -1420,6 +1451,41 @@
         ctx.strokeStyle = 'rgba(255,255,255,.9)';
         ctx.lineWidth = 1.2;
         ctx.stroke();
+
+        // collision prediction: the line of centers (contact point -> object
+        // ball) is the object ball's outgoing path; the cue ball's own
+        // post-contact path (assuming a plain stun shot, no spin) is what's
+        // left of its incoming velocity after removing the component along
+        // that same line of centers — i.e. the perpendicular "tangent" line.
+        // Both are cut at the rail so they read as one continuous prediction,
+        // same as the aim line.
+        const objDx = hitBall.x-target.x, objDy = hitBall.y-target.y;
+        const objDist = Math.hypot(objDx,objDy) || 1;
+        const objDirX = objDx/objDist, objDirY = objDy/objDist;
+        const objLen = railDist(hitBall.x, hitBall.y, objDirX, objDirY);
+        ctx.beginPath();
+        ctx.moveTo(hitBall.x, hitBall.y);
+        ctx.lineTo(hitBall.x+objDirX*objLen, hitBall.y+objDirY*objLen);
+        ctx.strokeStyle = 'rgba(255,212,59,.75)';
+        ctx.lineWidth = 1.3;
+        ctx.setLineDash([4,5]);
+        ctx.stroke();
+
+        const vinDotN = dirX*objDirX + dirY*objDirY;
+        let tanX = dirX - vinDotN*objDirX, tanY = dirY - vinDotN*objDirY;
+        const tanMag = Math.hypot(tanX,tanY);
+        if(tanMag > 0.001){
+          tanX /= tanMag; tanY /= tanMag;
+          const tanLen = railDist(target.x, target.y, tanX, tanY);
+          ctx.beginPath();
+          ctx.moveTo(target.x, target.y);
+          ctx.lineTo(target.x+tanX*tanLen, target.y+tanY*tanLen);
+          ctx.strokeStyle = 'rgba(255,47,208,.7)';
+          ctx.lineWidth = 1.3;
+          ctx.setLineDash([4,5]);
+          ctx.stroke();
+        }
+        ctx.setLineDash([]);
       }
 
       // cue stick — tip rests against the ball, butt pulls back with power.
@@ -1580,7 +1646,7 @@
     drawTable();
   }
   canvas.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving()) return;
+    if(controlsLocked()) return;
     const pt = canvasPoint(e);
     if(state.ballInHand){
       state.placingBall = true;
@@ -1609,7 +1675,7 @@
   // power; releasing fires the shot — this is the shoot gesture.
   const rackCuePreviewEl = document.getElementById('rackCuePreview');
   rackCuePreviewEl.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving() || state.ballInHand || state.aimAngle===null) return;
+    if(controlsLocked() || state.ballInHand || state.aimAngle===null) return;
     state.rackDragging = true;
     state.rackDragStartY = e.clientY;
     state.rackStartPower = state.power;
@@ -1647,7 +1713,7 @@
     drawTable();
   }
   powerWrapEl.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving() || state.ballInHand || state.aimAngle===null) return;
+    if(controlsLocked() || state.ballInHand || state.aimAngle===null) return;
     state.rulerDragging = true;
     setPowerFromSliderEvent(e);
     e.preventDefault();
@@ -1693,7 +1759,7 @@
   }
 
   spinWrapEl.addEventListener('mousedown', e=>{
-    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    if(controlsLocked() || state.ballInHand) return;
     spinDragging = true;
     setSpinFromEvent(e);
     e.preventDefault();
@@ -1707,7 +1773,7 @@
   });
 
   document.getElementById('shootBtn').addEventListener('click', ()=>{
-    if(state.gameOver || ballsMoving() || state.ballInHand) return;
+    if(controlsLocked() || state.ballInHand) return;
     if(state.power<=0.02 || state.aimAngle===null) return;
     fireShot(state.aimAngle, state.power);
   });
@@ -1776,7 +1842,7 @@
   }
 
   function botTakeTurn(){
-    if(state.gameOver || ballsMoving() || state.currentPlayer!==state.botPlayer) return;
+    if(controlsLocked() || state.currentPlayer!==state.botPlayer) return;
     if(state.ballInHand){
       placeCueBallAt({x:PLAY.left+(PLAY.right-PLAY.left)*0.25, y:(PLAY.top+PLAY.bottom)/2});
       setBallInHand(false);
