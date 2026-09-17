@@ -407,9 +407,9 @@
         </div>
       </div>
       <div class="topbar-stats">
-        <div class="stat-pill">🏆 <span>340</span></div>
-        <div class="stat-pill">🪙 <span>529,971</span></div>
-        <div class="stat-pill">💵 <span>1,131</span></div>
+        <div class="stat-pill">🏆 <span id="statTrophies">340</span></div>
+        <div class="stat-pill">🪙 <span id="statCoins">529,971</span></div>
+        <div class="stat-pill">💵 <span id="statCash">1,131</span></div>
       </div>
       <button class="gear-btn" id="menuGearBtn" title="Réglages">⚙️</button>
     </div>
@@ -457,7 +457,7 @@
         <div class="vs-coin" id="vsCoin">🪙 0</div>
       </div>
       <div class="vs-card">
-        <div class="avatar-wrap"><div class="avatar">🧑</div><div class="flag-badge">🇺🇸</div></div>
+        <div class="avatar-wrap"><div class="avatar">🧑</div><div class="flag-badge" id="vsOpponentFlag">🇺🇸</div></div>
         <div class="vs-name" id="vsOpponentName">Okuneva</div>
       </div>
     </div>
@@ -495,11 +495,11 @@
         <div class="player" id="p2box">
           <div class="avatar-wrap">
             <div class="avatar">🧑</div>
-            <div class="flag-badge">🇺🇸</div>
+            <div class="flag-badge" id="p2flag">🇺🇸</div>
           </div>
           <div class="player-info">
             <div class="name" id="p2name">Okuneva</div>
-            <div class="rating">1495</div>
+            <div class="rating" id="p2rating">1495</div>
             <div class="coins" id="p2coins">🪙 1500</div>
             <div class="group" id="p2group">Group: —</div>
             <div class="balls-left" id="p2balls"></div>
@@ -574,6 +574,30 @@
 
   function formatK(n){ return n>=1000 ? Math.round(n/1000)+'k' : String(n); }
 
+  // ---------- persistent profile (coins/trophies survive a reload via
+  // localStorage; "cash" has no in-game mechanic driving it yet, so it's
+  // just carried through unchanged) ----------
+  const PROFILE_KEY = 'pool2026_profile';
+  function loadProfile(){
+    try{
+      const raw = localStorage.getItem(PROFILE_KEY);
+      if(raw){
+        const p = JSON.parse(raw);
+        if(typeof p.coins==='number' && typeof p.trophies==='number' && typeof p.cash==='number') return p;
+      }
+    } catch(e){}
+    return { coins:1500, trophies:340, cash:1131 };
+  }
+  function saveProfile(){
+    try{ localStorage.setItem(PROFILE_KEY, JSON.stringify(profile)); } catch(e){}
+  }
+  let profile = loadProfile();
+  function renderProfileStats(){
+    document.getElementById('statTrophies').textContent = profile.trophies.toLocaleString();
+    document.getElementById('statCoins').textContent = profile.coins.toLocaleString();
+    document.getElementById('statCash').textContent = profile.cash.toLocaleString();
+  }
+
   function renderCityCarousel(){
     const el = document.getElementById('cityCarousel');
     el.innerHTML = '';
@@ -598,9 +622,15 @@
   }
 
   let pendingOpponent = { name:'Okuneva', flag:'🇺🇸', rating:1495 };
+  let pendingMode = '1v1';
 
   function startMatchmaking(city){
     state.wager = city.entry;
+    state.vsBot = (pendingMode === 'bot');
+    state.botPlayer = 2;
+    pendingOpponent = state.vsBot
+      ? { name:'CPU Bot', flag:'🤖', rating:1400 }
+      : { name:'Okuneva', flag:'🇺🇸', rating:1495 };
     showScreen('screenMatch');
     document.getElementById('matchSpinner').style.display = 'flex';
     document.getElementById('vsBanner').hidden = true;
@@ -610,6 +640,7 @@
       document.getElementById('matchSpinner').style.display = 'none';
       document.getElementById('vsBanner').hidden = false;
       document.getElementById('vsOpponentName').textContent = pendingOpponent.name;
+      document.getElementById('vsOpponentFlag').textContent = pendingOpponent.flag;
       const coinEl = document.getElementById('vsCoin');
       const target = city.entry*2;
       let shown = 0;
@@ -632,6 +663,8 @@
 
   function startMatch(city){
     document.getElementById('p2name').textContent = pendingOpponent.name;
+    document.getElementById('p2flag').textContent = pendingOpponent.flag;
+    document.getElementById('p2rating').textContent = pendingOpponent.rating;
     restartGame();
     showScreen('screenGame');
     updateEquippedCueMsg();
@@ -641,6 +674,7 @@
   document.getElementById('modeGrid').addEventListener('click', e=>{
     const card = e.target.closest('.mode-card');
     if(!card) return;
+    pendingMode = card.dataset.mode;
     renderCityCarousel();
     showScreen('screenLobby');
   });
@@ -757,8 +791,10 @@
     firstBreak:true,
     ballInHand:true,
     placingBall:false,
-    balance:{1:1500, 2:1500},
+    balance:{1:profile.coins, 2:1500},
     wager:150,
+    vsBot:false,
+    botPlayer:2,
     power:0, // 0..1, set via the rack cue pull or the ruler, fired by the shoot button
     rackDragging:false,
     rackDragStartY:0,
@@ -1047,6 +1083,15 @@
     const pot = state.wager*2;
     state.balance[winner] += state.wager;
     state.balance[loser] -= state.wager;
+
+    // player 1 (Chacal243) is the persisted account across every mode;
+    // sync the running match balance back into the saved profile so it
+    // survives a reload, and count a win toward the trophy total
+    if(winner===1) profile.trophies += 1;
+    profile.coins = state.balance[1];
+    saveProfile();
+    renderProfileStats();
+
     updateHUD();
 
     document.getElementById('overlayText').textContent =
@@ -1119,6 +1164,9 @@
     if(state.currentPlayer !== cp) showTurnBanner("C'est votre tour");
     updateHUD();
     if(!state.ballInHand) drawTable();
+    if(state.vsBot && state.currentPlayer===state.botPlayer && !state.gameOver){
+      setTimeout(botTakeTurn, 900);
+    }
   }
 
   function spotCueIfNeeded(){
@@ -1673,6 +1721,51 @@
     drawTable();
   });
 
+  // ---------- bot opponent ----------
+  // A casual heuristic, not a solver: pick one of the bot's own legal object
+  // balls at random, aim at the ghost-ball point that would send it toward
+  // whichever pocket it's closest to, and fire with a somewhat random power
+  // so the bot isn't unrealistically precise.
+  function pickBotAimAngle(){
+    const cue = balls.find(b=>b.id==='cue');
+    const group = state.groups[state.botPlayer];
+    let candidates = balls.filter(b=>!b.potted && b.type!==CUE && b.type!==EIGHT);
+    if(group) candidates = candidates.filter(b=>b.type===group);
+    if(candidates.length===0) candidates = balls.filter(b=>!b.potted && b.type!==CUE);
+    if(candidates.length===0) return null;
+    const target = candidates[Math.floor(Math.random()*candidates.length)];
+
+    let bestPocket = pockets[0], bestDist = Infinity;
+    pockets.forEach(p=>{
+      const d = Math.hypot(target.x-p.x, target.y-p.y);
+      if(d < bestDist){ bestDist = d; bestPocket = p; }
+    });
+    const dx = target.x-bestPocket.x, dy = target.y-bestPocket.y;
+    const dist = Math.hypot(dx,dy) || 1;
+    const ghostX = target.x + (dx/dist)*(BALL_R*2);
+    const ghostY = target.y + (dy/dist)*(BALL_R*2);
+    return Math.atan2(ghostY-cue.y, ghostX-cue.x);
+  }
+
+  function botTakeTurn(){
+    if(state.gameOver || ballsMoving() || state.currentPlayer!==state.botPlayer) return;
+    if(state.ballInHand){
+      placeCueBallAt({x:PLAY.left+(PLAY.right-PLAY.left)*0.25, y:(PLAY.top+PLAY.bottom)/2});
+      setBallInHand(false);
+      state.aimAngle = defaultAimAngle();
+      drawTable();
+      setTimeout(botTakeTurn, 500);
+      return;
+    }
+    const angle = pickBotAimAngle();
+    if(angle===null) return;
+    state.aimAngle = angle;
+    updateRulerVisual(aimAngleToRulerFrac(angle));
+    drawTable();
+    const power = 0.45 + Math.random()*0.35;
+    setTimeout(()=> fireShot(angle, power), 600);
+  }
+
   function restartGame(){
     setupBalls();
     state.currentPlayer = 1;
@@ -1695,6 +1788,7 @@
   setBallInHand(true);
   drawTable();
   renderCueRack();
+  renderProfileStats();
 })();
 </script>
 </body>
