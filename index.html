@@ -1592,6 +1592,7 @@
       ctx.restore();
     }
     updateRackVisual(state.power);
+    document.getElementById('shootBtn').disabled = controlsLocked() || state.ballInHand;
 
     // balls — every ball (solids, stripes, and the 8-ball) shows its color
     // plus a white number circle, matching the reference art
@@ -1690,11 +1691,23 @@
   }
 
   // ---------- input ----------
+  // every drag control below is wired for both mouse and touch: each
+  // start/move/end trio is a named function registered for its mouse event
+  // *and* the matching touch event, rather than two parallel copies of the
+  // same logic. touchmove/touchstart listen with {passive:false} so
+  // preventDefault() can actually stop the page from scrolling while a drag
+  // is in progress — but only once a drag is confirmed active, so an idle
+  // touchmove elsewhere on the page (e.g. scrolling a menu) is untouched.
+  function clientXY(evt){
+    if(evt.touches && evt.touches.length) return {x:evt.touches[0].clientX, y:evt.touches[0].clientY};
+    if(evt.changedTouches && evt.changedTouches.length) return {x:evt.changedTouches[0].clientX, y:evt.changedTouches[0].clientY};
+    return {x:evt.clientX, y:evt.clientY};
+  }
+
   function canvasPoint(evt){
     const rect = canvas.getBoundingClientRect();
     const scaleX = W/rect.width, scaleY = H/rect.height;
-    const clientX = evt.touches? evt.touches[0].clientX : evt.clientX;
-    const clientY = evt.touches? evt.touches[0].clientY : evt.clientY;
+    const {x:clientX, y:clientY} = clientXY(evt);
     return { x:(clientX-rect.left)*scaleX, y:(clientY-rect.top)*scaleY };
   }
 
@@ -1708,8 +1721,9 @@
     state.aimAngle = Math.atan2(pt.y-cue.y, pt.x-cue.x);
     drawTable();
   }
-  canvas.addEventListener('mousedown', e=>{
+  function handleCanvasStart(e){
     if(controlsLocked()) return;
+    e.preventDefault();
     const pt = canvasPoint(e);
     if(state.ballInHand){
       state.placingBall = true;
@@ -1719,39 +1733,48 @@
     }
     aimDragging = true;
     updateAimFromPoint(pt);
-    e.preventDefault();
-  });
-  window.addEventListener('mousemove', e=>{
+  }
+  function handleCanvasMove(e){
     if(state.placingBall){
+      e.preventDefault();
       placeCueBallAt(canvasPoint(e));
       drawTable();
     } else if(aimDragging){
+      e.preventDefault();
       updateAimFromPoint(canvasPoint(e));
     }
-  });
-  window.addEventListener('mouseup', ()=>{
+  }
+  function handleCanvasEnd(){
     state.placingBall = false;
     aimDragging = false;
-  });
+  }
+  canvas.addEventListener('mousedown', handleCanvasStart);
+  canvas.addEventListener('touchstart', handleCanvasStart, {passive:false});
+  window.addEventListener('mousemove', handleCanvasMove);
+  window.addEventListener('touchmove', handleCanvasMove, {passive:false});
+  window.addEventListener('mouseup', handleCanvasEnd);
+  window.addEventListener('touchend', handleCanvasEnd);
+  window.addEventListener('touchcancel', handleCanvasEnd);
 
   // LEFT control: drag the rack cue itself downward to pull it back and set
   // power; releasing fires the shot — this is the shoot gesture.
   const rackCuePreviewEl = document.getElementById('rackCuePreview');
-  rackCuePreviewEl.addEventListener('mousedown', e=>{
+  function handleRackStart(e){
     if(controlsLocked() || state.ballInHand || state.aimAngle===null) return;
     state.rackDragging = true;
-    state.rackDragStartY = e.clientY;
+    state.rackDragStartY = clientXY(e).y;
     state.rackStartPower = state.power;
     e.preventDefault();
-  });
-  window.addEventListener('mousemove', e=>{
+  }
+  function handleRackMove(e){
     if(!state.rackDragging) return;
-    const dy = e.clientY - state.rackDragStartY;
+    e.preventDefault();
+    const dy = clientXY(e).y - state.rackDragStartY;
     state.power = Math.max(0, Math.min(1, state.rackStartPower + dy/110));
     updateRackVisual(state.power);
     drawTable();
-  });
-  window.addEventListener('mouseup', ()=>{
+  }
+  function handleRackEnd(){
     if(!state.rackDragging) return;
     state.rackDragging = false;
     if(state.power > 0.04){
@@ -1760,7 +1783,14 @@
       state.power = 0;
       updateRackVisual(0);
     }
-  });
+  }
+  rackCuePreviewEl.addEventListener('mousedown', handleRackStart);
+  rackCuePreviewEl.addEventListener('touchstart', handleRackStart, {passive:false});
+  window.addEventListener('mousemove', handleRackMove);
+  window.addEventListener('touchmove', handleRackMove, {passive:false});
+  window.addEventListener('mouseup', handleRackEnd);
+  window.addEventListener('touchend', handleRackEnd);
+  window.addEventListener('touchcancel', handleRackEnd);
 
   // RIGHT control: the power gauge. Dragging it up/down sets shot strength
   // (0..1) smoothly; releasing transfers that power, at the current aim
@@ -1769,23 +1799,24 @@
   const powerWrapEl = document.getElementById('powerWrap');
   function setPowerFromSliderEvent(e){
     const rect = powerWrapEl.getBoundingClientRect();
-    const frac = Math.max(0, Math.min(1, 1 - (e.clientY-rect.top)/rect.height));
+    const frac = Math.max(0, Math.min(1, 1 - (clientXY(e).y-rect.top)/rect.height));
     state.power = frac;
     updateRulerVisual(frac);
     updateRackVisual(frac);
     drawTable();
   }
-  powerWrapEl.addEventListener('mousedown', e=>{
+  function handlePowerStart(e){
     if(controlsLocked() || state.ballInHand || state.aimAngle===null) return;
     state.rulerDragging = true;
     setPowerFromSliderEvent(e);
     e.preventDefault();
-  });
-  window.addEventListener('mousemove', e=>{
+  }
+  function handlePowerMove(e){
     if(!state.rulerDragging) return;
+    e.preventDefault();
     setPowerFromSliderEvent(e);
-  });
-  window.addEventListener('mouseup', ()=>{
+  }
+  function handlePowerEnd(){
     if(!state.rulerDragging) return;
     state.rulerDragging = false;
     if(state.power > 0.04){
@@ -1795,7 +1826,14 @@
       updateRulerVisual(0);
       updateRackVisual(0);
     }
-  });
+  }
+  powerWrapEl.addEventListener('mousedown', handlePowerStart);
+  powerWrapEl.addEventListener('touchstart', handlePowerStart, {passive:false});
+  window.addEventListener('mousemove', handlePowerMove);
+  window.addEventListener('touchmove', handlePowerMove, {passive:false});
+  window.addEventListener('mouseup', handlePowerEnd);
+  window.addEventListener('touchend', handlePowerEnd);
+  window.addEventListener('touchcancel', handlePowerEnd);
 
   // LOWER-RIGHT control: drag the white dot within the spin-ball widget to
   // set english — where you strike the cue ball off-center.
@@ -1812,8 +1850,7 @@
   function setSpinFromEvent(e){
     const rect = spinWrapEl.getBoundingClientRect();
     const cx = rect.left + rect.width/2, cy = rect.top + rect.height/2;
-    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
-    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+    const {x:clientX, y:clientY} = clientXY(e);
     let dx = (clientX-cx)/(rect.width/2);
     let dy = (clientY-cy)/(rect.height/2);
     const mag = Math.hypot(dx,dy);
@@ -1821,19 +1858,27 @@
     setSpin(dx, dy);
   }
 
-  spinWrapEl.addEventListener('mousedown', e=>{
+  function handleSpinStart(e){
     if(controlsLocked() || state.ballInHand) return;
     spinDragging = true;
     setSpinFromEvent(e);
     e.preventDefault();
-  });
-  window.addEventListener('mousemove', e=>{
+  }
+  function handleSpinMove(e){
     if(!spinDragging) return;
+    e.preventDefault();
     setSpinFromEvent(e);
-  });
-  window.addEventListener('mouseup', ()=>{
+  }
+  function handleSpinEnd(){
     spinDragging = false;
-  });
+  }
+  spinWrapEl.addEventListener('mousedown', handleSpinStart);
+  spinWrapEl.addEventListener('touchstart', handleSpinStart, {passive:false});
+  window.addEventListener('mousemove', handleSpinMove);
+  window.addEventListener('touchmove', handleSpinMove, {passive:false});
+  window.addEventListener('mouseup', handleSpinEnd);
+  window.addEventListener('touchend', handleSpinEnd);
+  window.addEventListener('touchcancel', handleSpinEnd);
 
   document.getElementById('shootBtn').addEventListener('click', ()=>{
     if(controlsLocked() || state.ballInHand) return;
